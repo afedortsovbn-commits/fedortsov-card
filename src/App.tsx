@@ -392,9 +392,11 @@ function Hero({ onPractice }: { onPractice: () => void }) {
           </span>
         </button>
       </div>
-      <div className="portrait-card" aria-label="Фото Александра Федорцова">
-        <img src={publicAsset('/images/profile.jpg')} alt="Александр Федорцов" />
-      </div>
+      <div
+        className="portrait-card"
+        aria-label="Фото Александра Федорцова"
+        style={{ backgroundImage: `url(${publicAsset('/images/profile.jpg')})` }}
+      />
     </section>
   )
 }
