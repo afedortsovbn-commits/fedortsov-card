@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" role="img" aria-label="Место для портретного фото">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#1b1d23"/>
+      <stop offset="1" stop-color="#050607"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="56%" cy="24%" r="58%">
+      <stop offset="0" stop-color="#d8a84d" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#d8a84d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <rect width="900" height="1200" fill="url(#glow)"/>
+  <circle cx="450" cy="310" r="128" fill="#2b2f38"/>
+  <path d="M210 1090c28-280 154-454 240-454s212 174 240 454H210Z" fill="#16191f"/>
+  <path d="M254 1100c20-197 91-342 196-342s176 145 196 342H254Z" fill="#0e1014"/>
+  <text x="450" y="535" fill="#e7b650" font-family="Arial, sans-serif" font-size="34" font-weight="700" text-anchor="middle">Ваше фото</text>
+  <text x="450" y="585" fill="#f5f0e5" font-family="Arial, sans-serif" font-size="24" text-anchor="middle">public/images/profile.jpg</text>
+</svg>
