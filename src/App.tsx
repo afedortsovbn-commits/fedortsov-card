@@ -22,6 +22,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import profilePhoto from './assets/profile.jpg'
 import './App.css'
 
 type NewsItem = {
@@ -395,8 +396,9 @@ function Hero({ onPractice }: { onPractice: () => void }) {
       <div
         className="portrait-card"
         aria-label="Фото Александра Федорцова"
-        style={{ backgroundImage: `url(${publicAsset('/images/profile.jpg')})` }}
-      />
+      >
+        <img src={profilePhoto} alt="Александр Федорцов" />
+      </div>
     </section>
   )
 }
