@@ -393,7 +393,7 @@ function Hero({ onPractice }: { onPractice: () => void }) {
         </button>
       </div>
       <div className="portrait-card" aria-label="Фото Александра Федорцова">
-        <img src={publicAsset('/images/profile-placeholder.svg')} alt="Александр Федорцов" />
+        <img src={publicAsset('/images/profile.jpg')} alt="Александр Федорцов" />
       </div>
     </section>
   )
