@@ -13,6 +13,12 @@ npm run dev
 
 Админка: `http://127.0.0.1:5176/#admin`
 
+## GitHub Pages
+
+В репозитории есть workflow `.github/workflows/deploy-pages.yml`. После push в `main` GitHub Actions собирает проект и публикует папку `dist` на GitHub Pages.
+
+Важно: GitHub Pages показывает статическую версию сайта. Для рабочей админки, сохранения заявок и редактирования новостей нужен Node-хостинг, где будет запущен `server/index.js` и заданы переменные `ADMIN_PASSWORD` и `ADMIN_TOKEN_SECRET`.
+
 ## Пароль админки
 
 Админка закрыта паролем. Для локального запуска создайте файл `.env` по примеру `.env.example`:

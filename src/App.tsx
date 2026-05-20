@@ -85,6 +85,30 @@ const statusOptions: StudentStatus[] = [
   'Отказано',
 ]
 
+const fallbackNews: NewsItem[] = [
+  {
+    id: 'news-1',
+    title: 'Нейросети в маркетинге: главные тренды года',
+    date: '2026-05-18',
+    image: '/images/news-ai.svg',
+    text: 'Маркетинговые команды все чаще используют нейросети не как отдельный инструмент, а как часть ежедневного процесса: от анализа аудитории до подготовки креативов и быстрых гипотез. Главный фокус смещается к качеству промптов, проверке фактов и прозрачной редактуре результата.',
+  },
+  {
+    id: 'news-2',
+    title: 'Персонализация: как данные помогают продавать больше',
+    date: '2026-05-17',
+    image: '/images/news-data.svg',
+    text: 'Бренды возвращаются к прагматичной персонализации: сегментируют аудиторию по поведению, уточняют офферы и тестируют коммуникации небольшими циклами. Побеждают не самые сложные системы, а команды, которые умеют быстро превращать данные в понятные действия.',
+  },
+  {
+    id: 'news-3',
+    title: 'Новые алгоритмы соцсетей: что важно знать маркетологу',
+    date: '2026-05-16',
+    image: '/images/news-social.svg',
+    text: 'Социальные платформы продолжают усиливать роль удержания внимания, сохранений и обсуждений. Для маркетологов это означает больший спрос на контент с практической ценностью, ясной позицией и форматом, который удобно пересылать коллегам.',
+  },
+]
+
 const api = {
   async login(password: string) {
     const response = await fetch('/api/auth/login', {
@@ -155,8 +179,15 @@ function authHeaders(token: string) {
   }
 }
 
+function publicAsset(path: string) {
+  if (path.startsWith('http') || path.startsWith('data:')) {
+    return path
+  }
+  return path.startsWith('/') ? `${import.meta.env.BASE_URL}${path.slice(1)}` : path
+}
+
 function App() {
-  const [news, setNews] = useState<NewsItem[]>([])
+  const [news, setNews] = useState<NewsItem[]>(fallbackNews)
   const [students, setStudents] = useState<StudentApplication[]>([])
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem('fedortsov-admin-token') || '')
   const [activeNews, setActiveNews] = useState<NewsItem | null>(null)
@@ -318,7 +349,7 @@ function App() {
       {activeNews && (
         <Modal title={activeNews.title} onClose={() => setActiveNews(null)}>
           <article className="news-full">
-            <img src={activeNews.image} alt="" />
+            <img src={publicAsset(activeNews.image)} alt="" />
             <time>{formatDate(activeNews.date)}</time>
             <p>{activeNews.text}</p>
           </article>
@@ -362,7 +393,7 @@ function Hero({ onPractice }: { onPractice: () => void }) {
         </button>
       </div>
       <div className="portrait-card" aria-label="Фото Александра Федорцова">
-        <img src="/images/profile-placeholder.svg" alt="Александр Федорцов" />
+        <img src={publicAsset('/images/profile-placeholder.svg')} alt="Александр Федорцов" />
       </div>
     </section>
   )
@@ -414,7 +445,7 @@ function NewsSection({ news, onOpen }: { news: NewsItem[]; onOpen: (item: NewsIt
       <div className="news-rail" aria-label="Список маркетинговых новостей">
         {news.map((item) => (
           <article className="news-card" key={item.id}>
-            <img src={item.image} alt="" />
+            <img src={publicAsset(item.image)} alt="" />
             <div>
               <time>{formatDate(item.date)}</time>
               <h3>{item.title}</h3>
@@ -598,7 +629,7 @@ function AdminPanel({
         <div className="admin-list">
           {news.map((item) => (
             <article className="admin-card" key={item.id}>
-              <img src={item.image} alt="" />
+              <img src={publicAsset(item.image)} alt="" />
               {editingNews === item.id ? (
                 <NewsEditor
                   item={item}
