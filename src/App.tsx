@@ -18,7 +18,6 @@ import {
   QrCode,
   Send,
   ShieldCheck,
-  Sparkles,
   Smartphone,
   Trash2,
   Users,
@@ -259,10 +258,6 @@ function App() {
   return (
     <>
       <header className="topbar">
-        <a className="brand" href="#" onClick={() => setRoute('site')}>
-          <Sparkles size={18} />
-          Федорцов Александр
-        </a>
         <nav aria-label="Основная навигация">
           <a href="#contacts">Контакты</a>
           <a href="#news">Новости</a>
@@ -367,12 +362,9 @@ function App() {
       )}
 
       {isQrOpen && (
-        <Modal title="QR-код сайта-визитки" onClose={() => setQrOpen(false)}>
+        <Modal title="QR-код сайта" onClose={() => setQrOpen(false)}>
           <div className="qr-modal">
-            <img src={publicAsset('/images/site-qr.svg')} alt="QR-код сайта-визитки" />
-            <a className="primary-action" href="https://afedortsovbn-commits.github.io/fedortsov-card/" target="_blank" rel="noreferrer">
-              Открыть сайт
-            </a>
+            <img src={publicAsset('/images/site-qr.svg')} alt="QR-код сайта" />
           </div>
         </Modal>
       )}
