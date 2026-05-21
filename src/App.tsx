@@ -253,6 +253,7 @@ function App() {
           Федорцов Александр
         </a>
         <nav aria-label="Основная навигация">
+          <a href="#contacts">Контакты</a>
           <a href="#news">Новости</a>
           <a href="#projects">Проекты</a>
         </nav>
@@ -410,7 +411,7 @@ function Contacts() {
   ]
 
   return (
-    <section className="contacts-band" aria-label="Контакты">
+    <section className="contacts-band" id="contacts" aria-label="Контакты">
       <div className="contact-grid">
         {contacts.map((item) => (
           <a key={item.href} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel="noreferrer">
