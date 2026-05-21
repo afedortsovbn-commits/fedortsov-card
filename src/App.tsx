@@ -15,6 +15,7 @@ import {
   Newspaper,
   Phone,
   Plus,
+  QrCode,
   Send,
   ShieldCheck,
   Sparkles,
@@ -195,6 +196,7 @@ function App() {
   const [activeNews, setActiveNews] = useState<NewsItem | null>(null)
   const [isPracticeOpen, setPracticeOpen] = useState(false)
   const [studentDraft, setStudentDraft] = useState(emptyStudent)
+  const [isQrOpen, setQrOpen] = useState(false)
   const [notice, setNotice] = useState('')
   const [route, setRoute] = useState(window.location.hash === '#admin' ? 'admin' : 'site')
 
@@ -355,7 +357,35 @@ function App() {
           </article>
         </Modal>
       )}
+
+      {isQrOpen && (
+        <Modal title="QR-код сайта-визитки" onClose={() => setQrOpen(false)}>
+          <div className="qr-modal">
+            <img src={publicAsset('/images/site-qr.svg')} alt="QR-код сайта-визитки" />
+            <a className="primary-action" href="https://afedortsovbn-commits.github.io/fedortsov-card/" target="_blank" rel="noreferrer">
+              Открыть сайт
+            </a>
+          </div>
+        </Modal>
+      )}
+
+      {!isAdmin && <ShareActions onQr={() => setQrOpen(true)} />}
     </>
+  )
+}
+
+function ShareActions({ onQr }: { onQr: () => void }) {
+  return (
+    <div className="share-actions" aria-label="Быстрые действия">
+      <button type="button" onClick={onQr}>
+        <QrCode size={16} />
+        QR-код
+      </button>
+      <a href={publicAsset('/downloads/alexander-fedortsov.vcf')} download>
+        <Phone size={16} />
+        Сохранить контакт
+      </a>
+    </div>
   )
 }
 
