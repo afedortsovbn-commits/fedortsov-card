@@ -189,6 +189,10 @@ function publicAsset(path: string) {
   return path.startsWith('/') ? `${import.meta.env.BASE_URL}${path.slice(1)}` : path
 }
 
+function isStaticPagesHost() {
+  return window.location.hostname.endsWith('github.io')
+}
+
 function App() {
   const [news, setNews] = useState<NewsItem[]>(fallbackNews)
   const [students, setStudents] = useState<StudentApplication[]>([])
@@ -208,7 +212,11 @@ function App() {
       setNews(newsItems)
     }
 
-    load().catch(() => setNotice('Не удалось загрузить данные. Проверьте, запущен ли сервер.'))
+    load().catch(() => {
+      if (!isStaticPagesHost()) {
+        setNotice('Не удалось загрузить данные. Проверьте, запущен ли сервер.')
+      }
+    })
   }, [])
 
   useEffect(() => {
