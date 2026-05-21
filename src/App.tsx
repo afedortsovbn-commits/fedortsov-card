@@ -255,9 +255,6 @@ function App() {
         <nav aria-label="Основная навигация">
           <a href="#news">Новости</a>
           <a href="#projects">Проекты</a>
-          <a href="#admin" onClick={() => setRoute('admin')}>
-            Админка
-          </a>
         </nav>
       </header>
 
@@ -473,13 +470,25 @@ function Projects() {
         <h2>Мои проекты</h2>
       </div>
       <div className="project-grid">
-        <a href="#projects" className="project-card" aria-label="Подбор маркетологов">
+        <a
+          href="https://afedortsovbn-commits.github.io/marketer-competency-service/"
+          className="project-card"
+          aria-label="Подбор маркетологов"
+          target="_blank"
+          rel="noreferrer"
+        >
           <Users />
           <h3>Подбор маркетологов</h3>
           <p>Поиск и оценка маркетинговых специалистов под задачи вашего бизнеса.</p>
           <span>Подробнее <ExternalLink size={16} /></span>
         </a>
-        <a href="#projects" className="project-card" aria-label="Выбор механики акции">
+        <a
+          href="https://afedortsovbn-commits.github.io/promo-mechanics-selector/"
+          className="project-card"
+          aria-label="Выбор механики акции"
+          target="_blank"
+          rel="noreferrer"
+        >
           <Megaphone />
           <h3>Выбор механики акции</h3>
           <p>Разработка эффективных механик для продвижения товаров и услуг.</p>
