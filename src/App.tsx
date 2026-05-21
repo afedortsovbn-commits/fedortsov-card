@@ -18,6 +18,7 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Smartphone,
   Trash2,
   Users,
   X,
@@ -494,6 +495,17 @@ function Projects() {
           <h3>Выбор механики акции</h3>
           <p>Разработка эффективных механик для продвижения товаров и услуг.</p>
           <span>Подробнее <ExternalLink size={16} /></span>
+        </a>
+        <a
+          href={publicAsset('/downloads/expense-control.apk')}
+          className="project-card"
+          aria-label="Скачать приложение для контроля расходов"
+          download
+        >
+          <Smartphone />
+          <h3>Контроль расходов</h3>
+          <p>Мобильное приложение для Android, чтобы фиксировать расходы и держать личные финансы под контролем.</p>
+          <span>Скачать APK <ExternalLink size={16} /></span>
         </a>
       </div>
     </section>

@@ -16,6 +16,7 @@ dist-ssr
 !.env.example
 .chrome-*
 qa-*.png
+AndroidApp/
 
 # Editor directories and files
 .vscode/*
