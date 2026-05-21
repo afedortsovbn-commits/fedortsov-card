@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run server\" \"vite --host 127.0.0.1 --port 5176\"",
     "server": "node server/index.js",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/build.mjs",
     "lint": "eslint .",
     "preview": "npm run build && npm run server"
   },
