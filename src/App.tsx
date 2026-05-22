@@ -394,6 +394,7 @@ function Hero({ onPractice }: { onPractice: () => void }) {
     <section className="hero-section">
       <div className="hero-copy">
         <p className="eyebrow">Профессиональный маркетолог</p>
+        <p className="workplace">CMO Белоруснефть</p>
         <h1>Федорцов Александр</h1>
         <ul className="proof-list" aria-label="Профессиональные достижения">
           <li>
