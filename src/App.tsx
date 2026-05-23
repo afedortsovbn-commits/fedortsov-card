@@ -319,7 +319,6 @@ function App() {
 
       <footer className="footer">
         <span>© {new Date().getFullYear()} Федорцов Александр</span>
-        <a href="mailto:A.Fedortsov@beloil.by">A.Fedortsov@beloil.by</a>
       </footer>
 
       {isPracticeOpen && (
