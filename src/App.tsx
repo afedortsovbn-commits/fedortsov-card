@@ -6,7 +6,6 @@ import {
   BriefcaseBusiness,
   Check,
   Clock,
-  Download,
   Edit3,
   ExternalLink,
   GraduationCap,
@@ -21,6 +20,7 @@ import {
   ShieldCheck,
   Smartphone,
   Trash2,
+  UserPlus,
   Users,
   X,
 } from 'lucide-react'
@@ -387,7 +387,7 @@ function ShareActions({ onQr }: { onQr: () => void }) {
         QR-код
       </button>
       <a href={publicAsset('/downloads/alexander-fedortsov.vcf')} download>
-        <Download size={16} />
+        <UserPlus size={16} />
         Сохранить контакт
       </a>
     </div>
