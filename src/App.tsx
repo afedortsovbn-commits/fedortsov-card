@@ -6,6 +6,7 @@ import {
   BriefcaseBusiness,
   Check,
   Clock,
+  Download,
   Edit3,
   ExternalLink,
   GraduationCap,
@@ -32,7 +33,10 @@ type NewsItem = {
   date: string
   image: string
   text: string
+  status?: NewsStatus
 }
+
+type NewsStatus = 'pending' | 'approved'
 
 type StudentStatus =
   | ''
@@ -77,6 +81,7 @@ const emptyNews: Omit<NewsItem, 'id'> = {
   date: new Date().toISOString().slice(0, 10),
   image: '',
   text: '',
+  status: 'pending',
 }
 
 const statusOptions: StudentStatus[] = [
@@ -204,6 +209,7 @@ function App() {
   const [route, setRoute] = useState(window.location.hash === '#admin' ? 'admin' : 'site')
 
   const isAdmin = route === 'admin'
+  const publicNews = news.filter((item) => item.status !== 'pending')
 
   useEffect(() => {
     const load = async () => {
@@ -312,7 +318,7 @@ function App() {
         <main>
           <Hero onPractice={() => setPracticeOpen(true)} />
           <Contacts />
-          <NewsSection news={news} onOpen={setActiveNews} />
+          <NewsSection news={publicNews} onOpen={setActiveNews} />
           <Projects />
         </main>
       )}
@@ -381,7 +387,7 @@ function ShareActions({ onQr }: { onQr: () => void }) {
         QR-код
       </button>
       <a href={publicAsset('/downloads/alexander-fedortsov.vcf')} download>
-        <Phone size={16} />
+        <Download size={16} />
         Сохранить контакт
       </a>
     </div>
@@ -631,7 +637,7 @@ function AdminPanel({
   const submitNews = async (event: FormEvent) => {
     event.preventDefault()
     const image = newsDraft.image || '/images/news-ai.svg'
-    const created = await api.createNews({ ...newsDraft, image }, token)
+    const created = await api.createNews({ ...newsDraft, image, status: 'pending' }, token)
     onNewsCreated(created)
     setNewsDraft(emptyNews)
   }
@@ -699,9 +705,17 @@ function AdminPanel({
               ) : (
                 <div>
                   <time>{formatDate(item.date)}</time>
+                  <span className={`news-status ${item.status === 'pending' ? 'is-pending' : 'is-approved'}`}>
+                    {item.status === 'pending' ? 'На согласовании' : 'Опубликовано'}
+                  </span>
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>
                   <div className="row-actions">
+                    {item.status === 'pending' && (
+                      <button type="button" onClick={async () => onNewsUpdated(await api.updateNews(item.id, { status: 'approved' }, token))}>
+                        <Check size={16} />Согласовать
+                      </button>
+                    )}
                     <button type="button" onClick={() => setEditingNews(item.id)}><Edit3 size={16} />Редактировать</button>
                     <button type="button" onClick={async () => { await api.deleteNews(item.id, token); onNewsDeleted(item.id) }}><Trash2 size={16} />Удалить</button>
                   </div>

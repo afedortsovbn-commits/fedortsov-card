@@ -78,7 +78,7 @@ app.post('/api/auth/login', (request, response) => {
 
 app.get('/api/news', async (_request, response) => {
   const db = await readDb()
-  response.json(db.news.sort((a, b) => new Date(b.date) - new Date(a.date)))
+  response.json(db.news.map((item) => ({ status: 'approved', ...item })).sort((a, b) => new Date(b.date) - new Date(a.date)))
 })
 
 app.post('/api/news', requireAdmin, async (request, response) => {
@@ -89,6 +89,7 @@ app.post('/api/news', requireAdmin, async (request, response) => {
     date: request.body.date || new Date().toISOString(),
     image: request.body.image || '/images/news-ai.svg',
     text: request.body.text,
+    status: request.body.status === 'approved' ? 'approved' : 'pending',
   }
   db.news.unshift(newsItem)
   await writeDb(db)

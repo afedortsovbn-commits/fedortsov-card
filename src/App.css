@@ -680,6 +680,26 @@ h1 {
   color: var(--text-muted);
 }
 
+.news-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  margin: 8px 0 0;
+  padding: 3px 9px;
+  border: 1px solid rgba(238, 187, 90, 0.34);
+  border-radius: 8px;
+  color: var(--text-strong);
+  font-size: 13px;
+}
+
+.news-status.is-pending {
+  color: #ffd58f;
+}
+
+.news-status.is-approved {
+  color: #9ee7b7;
+}
+
 .row-actions {
   display: flex;
   gap: 10px;
