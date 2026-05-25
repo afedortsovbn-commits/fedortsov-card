@@ -375,6 +375,48 @@ h1 {
   font-weight: 800;
 }
 
+.job-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.job-card {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid rgba(238, 187, 90, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.job-card h3 {
+  margin: 0 0 8px;
+  color: var(--text-strong);
+  font-size: clamp(22px, 4vw, 28px);
+}
+
+.job-meta {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.job-details {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.job-details dt {
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.job-details dd {
+  margin: 4px 0 0;
+  color: var(--text);
+  white-space: pre-line;
+}
+
 .footer {
   display: flex;
   justify-content: space-between;
@@ -461,6 +503,7 @@ h1 {
 
 .field input,
 .field textarea,
+.field select,
 .student-top select {
   width: 100%;
   box-sizing: border-box;
@@ -470,6 +513,16 @@ h1 {
   color: var(--text-strong);
   background: rgba(255, 255, 255, 0.06);
   font: inherit;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-field input {
+  width: auto;
 }
 
 .field textarea {
@@ -634,7 +687,7 @@ h1 {
 .admin-stats {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .admin-stats span,
@@ -771,6 +824,10 @@ h1 {
   }
 
   .project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .job-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

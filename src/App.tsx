@@ -61,7 +61,33 @@ type StudentApplication = {
   status: StudentStatus
 }
 
+type JobOpening = {
+  id: string
+  createdAt?: string
+  title: string
+  startDate: string
+  endDate: string
+  isOpenEnded: boolean
+  city: string
+  workFormat: string
+  requirements: string
+  responsibilities: string
+  status: 'active' | 'paused'
+}
+
 type StudentDraft = Omit<StudentApplication, 'id' | 'createdAt' | 'status'>
+type JobDraft = Omit<JobOpening, 'id' | 'createdAt'>
+
+type ResumeDraft = {
+  jobId: string
+  jobTitle: string
+  fullName: string
+  phone: string
+  telegram: string
+  email: string
+  resumeLink: string
+  comment: string
+}
 
 const emptyStudent: StudentDraft = {
   fullName: '',
@@ -82,6 +108,29 @@ const emptyNews: Omit<NewsItem, 'id'> = {
   image: '',
   text: '',
   status: 'pending',
+}
+
+const emptyJob: JobDraft = {
+  title: '',
+  startDate: '',
+  endDate: '',
+  isOpenEnded: true,
+  city: '',
+  workFormat: '',
+  requirements: '',
+  responsibilities: '',
+  status: 'active',
+}
+
+const emptyResume: ResumeDraft = {
+  jobId: '',
+  jobTitle: '',
+  fullName: '',
+  phone: '',
+  telegram: '',
+  email: '',
+  resumeLink: '',
+  comment: '',
 }
 
 const statusOptions: StudentStatus[] = [
@@ -132,6 +181,10 @@ const api = {
     const response = await fetch('/api/news')
     return response.json() as Promise<NewsItem[]>
   },
+  async listJobs() {
+    const response = await fetch('/api/jobs')
+    return response.json() as Promise<JobOpening[]>
+  },
   async createNews(payload: Omit<NewsItem, 'id'>, token: string) {
     const response = await fetch('/api/news', {
       method: 'POST',
@@ -150,6 +203,25 @@ const api = {
   },
   async deleteNews(id: string, token: string) {
     await fetch(`/api/news/${id}`, { method: 'DELETE', headers: authHeaders(token) })
+  },
+  async createJob(payload: JobDraft, token: string) {
+    const response = await fetch('/api/jobs', {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    })
+    return response.json() as Promise<JobOpening>
+  },
+  async updateJob(id: string, payload: Partial<JobOpening>, token: string) {
+    const response = await fetch(`/api/jobs/${id}`, {
+      method: 'PUT',
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    })
+    return response.json() as Promise<JobOpening>
+  },
+  async deleteJob(id: string, token: string) {
+    await fetch(`/api/jobs/${id}`, { method: 'DELETE', headers: authHeaders(token) })
   },
   async listStudents(token: string) {
     const response = await fetch('/api/applications', { headers: authHeaders(token) })
@@ -177,6 +249,14 @@ const api = {
   async deleteStudent(id: string, token: string) {
     await fetch(`/api/applications/${id}`, { method: 'DELETE', headers: authHeaders(token) })
   },
+  async createResume(payload: ResumeDraft) {
+    const response = await fetch('/api/resumes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    return response.json()
+  },
 }
 
 function authHeaders(token: string) {
@@ -199,22 +279,27 @@ function isStaticPagesHost() {
 
 function App() {
   const [news, setNews] = useState<NewsItem[]>(fallbackNews)
+  const [jobs, setJobs] = useState<JobOpening[]>([])
   const [students, setStudents] = useState<StudentApplication[]>([])
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem('fedortsov-admin-token') || '')
   const [activeNews, setActiveNews] = useState<NewsItem | null>(null)
+  const [activeJob, setActiveJob] = useState<JobOpening | null>(null)
   const [isPracticeOpen, setPracticeOpen] = useState(false)
   const [studentDraft, setStudentDraft] = useState(emptyStudent)
+  const [resumeDraft, setResumeDraft] = useState(emptyResume)
   const [isQrOpen, setQrOpen] = useState(false)
   const [notice, setNotice] = useState('')
   const [route, setRoute] = useState(window.location.hash === '#admin' ? 'admin' : 'site')
 
   const isAdmin = route === 'admin'
   const publicNews = news.filter((item) => item.status !== 'pending')
+  const publicJobs = jobs.filter((item) => item.status !== 'paused')
 
   useEffect(() => {
     const load = async () => {
-      const newsItems = await api.listNews()
+      const [newsItems, jobItems] = await Promise.all([api.listNews(), api.listJobs()])
       setNews(newsItems)
+      setJobs(jobItems)
     }
 
     load().catch(() => {
@@ -253,6 +338,17 @@ function App() {
     setNotice('Заявка отправлена. Александр свяжется с вами после просмотра анкеты.')
   }
 
+  const submitResume = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!activeJob) {
+      return
+    }
+    await api.createResume({ ...resumeDraft, jobId: activeJob.id, jobTitle: activeJob.title })
+    setResumeDraft(emptyResume)
+    setActiveJob(null)
+    setNotice('Отклик отправлен. Александр получит резюме в Telegram.')
+  }
+
   const refreshNewsItem = (updated: NewsItem) => {
     setNews((items) => items.map((item) => (item.id === updated.id ? updated : item)))
   }
@@ -261,11 +357,16 @@ function App() {
     setStudents((items) => items.map((item) => (item.id === updated.id ? updated : item)))
   }
 
+  const refreshJob = (updated: JobOpening) => {
+    setJobs((items) => items.map((item) => (item.id === updated.id ? updated : item)))
+  }
+
   return (
     <>
       <header className="topbar">
         <nav aria-label="Основная навигация">
           <a href="#contacts">Контакты</a>
+          <a href="#jobs">Вакансии</a>
           <a href="#news">Новости</a>
           <a href="#projects">Проекты</a>
         </nav>
@@ -285,6 +386,7 @@ function App() {
           <AdminPanel
             token={adminToken}
             news={news}
+            jobs={jobs}
             students={students}
             onLogout={() => {
               localStorage.removeItem('fedortsov-admin-token')
@@ -298,6 +400,9 @@ function App() {
             onNewsCreated={(created) => setNews((items) => [created, ...items])}
             onNewsUpdated={refreshNewsItem}
             onNewsDeleted={(id) => setNews((items) => items.filter((item) => item.id !== id))}
+            onJobCreated={(created) => setJobs((items) => [created, ...items])}
+            onJobUpdated={refreshJob}
+            onJobDeleted={(id) => setJobs((items) => items.filter((item) => item.id !== id))}
             onStudentUpdated={refreshStudent}
             onStudentDeleted={(id) => setStudents((items) => items.filter((item) => item.id !== id))}
           />
@@ -318,6 +423,7 @@ function App() {
         <main>
           <Hero onPractice={() => setPracticeOpen(true)} />
           <Contacts />
+          <JobsSection jobs={publicJobs} onRespond={setActiveJob} />
           <NewsSection news={publicNews} onOpen={setActiveNews} />
           <Projects />
         </main>
@@ -363,6 +469,30 @@ function App() {
             <time>{formatDate(activeNews.date)}</time>
             <p>{activeNews.text}</p>
           </article>
+        </Modal>
+      )}
+
+      {activeJob && (
+        <Modal title="Отправить резюме" onClose={() => setActiveJob(null)}>
+          <form className="practice-form" onSubmit={submitResume}>
+            <div className="field field-wide">
+              <span>Вакансия</span>
+              <strong>{activeJob.title}</strong>
+            </div>
+            <TextInput label="ФИО" value={resumeDraft.fullName} onChange={(fullName) => setResumeDraft({ ...resumeDraft, fullName })} required />
+            <TextInput label="Телефон" value={resumeDraft.phone} onChange={(phone) => setResumeDraft({ ...resumeDraft, phone })} required />
+            <TextInput label="Телеграм" value={resumeDraft.telegram} onChange={(telegram) => setResumeDraft({ ...resumeDraft, telegram })} required />
+            <TextInput label="E-mail" type="email" value={resumeDraft.email} onChange={(email) => setResumeDraft({ ...resumeDraft, email })} />
+            <TextInput label="Ссылка на резюме" value={resumeDraft.resumeLink} onChange={(resumeLink) => setResumeDraft({ ...resumeDraft, resumeLink })} placeholder="Google Drive, hh, LinkedIn или другой URL" />
+            <label className="field field-wide">
+              <span>Комментарий</span>
+              <textarea value={resumeDraft.comment} onChange={(event) => setResumeDraft({ ...resumeDraft, comment: event.target.value })} />
+            </label>
+            <button className="primary-action field-wide" type="submit">
+              <Send size={18} />
+              Отправить резюме
+            </button>
+          </form>
         </Modal>
       )}
 
@@ -472,6 +602,47 @@ function Contacts() {
 
 function BrandMark({ kind }: { kind: 'in' | 'ig' }) {
   return <span className={`brand-mark brand-mark-${kind}`} aria-hidden="true">{kind === 'in' ? 'in' : '◎'}</span>
+}
+
+function JobsSection({ jobs, onRespond }: { jobs: JobOpening[]; onRespond: (job: JobOpening) => void }) {
+  if (jobs.length === 0) {
+    return null
+  }
+
+  return (
+    <section className="section-shell" id="jobs">
+      <div className="section-title">
+        <BriefcaseBusiness />
+        <h2>Ищу сотрудников</h2>
+      </div>
+      <div className="job-grid">
+        {jobs.map((job) => (
+          <article className="job-card" key={job.id}>
+            <div>
+              <h3>{job.title}</h3>
+              <p className="job-meta">
+                {[job.city, job.workFormat, formatJobDates(job)].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+            <dl className="job-details">
+              <div>
+                <dt>Требования</dt>
+                <dd>{job.requirements}</dd>
+              </div>
+              <div>
+                <dt>Задачи и обязанности</dt>
+                <dd>{job.responsibilities}</dd>
+              </div>
+            </dl>
+            <button className="primary-action" type="button" onClick={() => onRespond(job)}>
+              <Send size={18} />
+              Отправить резюме
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
 }
 
 function NewsSection({ news, onOpen }: { news: NewsItem[]; onOpen: (item: NewsItem) => void }) {
@@ -600,28 +771,38 @@ function AdminLogin({ onBack, onLogin }: { onBack: () => void; onLogin: (passwor
 function AdminPanel({
   token,
   news,
+  jobs,
   students,
   onLogout,
   onBack,
   onNewsCreated,
   onNewsUpdated,
   onNewsDeleted,
+  onJobCreated,
+  onJobUpdated,
+  onJobDeleted,
   onStudentUpdated,
   onStudentDeleted,
 }: {
   token: string
   news: NewsItem[]
+  jobs: JobOpening[]
   students: StudentApplication[]
   onLogout: () => void
   onBack: () => void
   onNewsCreated: (item: NewsItem) => void
   onNewsUpdated: (item: NewsItem) => void
   onNewsDeleted: (id: string) => void
+  onJobCreated: (item: JobOpening) => void
+  onJobUpdated: (item: JobOpening) => void
+  onJobDeleted: (id: string) => void
   onStudentUpdated: (item: StudentApplication) => void
   onStudentDeleted: (id: string) => void
 }) {
   const [newsDraft, setNewsDraft] = useState(emptyNews)
+  const [jobDraft, setJobDraft] = useState(emptyJob)
   const [editingNews, setEditingNews] = useState<string | null>(null)
+  const [editingJob, setEditingJob] = useState<string | null>(null)
   const [editingStudent, setEditingStudent] = useState<string | null>(null)
   const [studentDrafts, setStudentDrafts] = useState<Record<string, StudentApplication>>({})
 
@@ -642,6 +823,13 @@ function AdminPanel({
     setNewsDraft(emptyNews)
   }
 
+  const submitJob = async (event: FormEvent) => {
+    event.preventDefault()
+    const created = await api.createJob(jobDraft, token)
+    onJobCreated(created)
+    setJobDraft(emptyJob)
+  }
+
   const updateStudentField = (student: StudentApplication, field: keyof StudentApplication, value: string) => {
     setStudentDrafts((items) => ({
       ...items,
@@ -654,7 +842,7 @@ function AdminPanel({
       <div className="admin-heading">
         <div>
           <p className="eyebrow">Административная часть</p>
-          <h1>Заявки студентов и новости</h1>
+          <h1>Заявки, вакансии и новости</h1>
         </div>
         <div className="admin-heading-actions">
           <button className="ghost-button" type="button" onClick={onBack}>
@@ -668,6 +856,7 @@ function AdminPanel({
 
       <div className="admin-stats">
         <span>Всего заявок: <strong>{studentStats.total}</strong></span>
+        <span>Вакансий: <strong>{jobs.length}</strong></span>
         <span>Согласовано: <strong>{studentStats.agreed}</strong></span>
         <span>Ожидают ответа: <strong>{studentStats.waiting}</strong></span>
       </div>
@@ -720,6 +909,97 @@ function AdminPanel({
                     <button type="button" onClick={async () => { await api.deleteNews(item.id, token); onNewsDeleted(item.id) }}><Trash2 size={16} />Удалить</button>
                   </div>
                 </div>
+              )}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="admin-section">
+        <h2>Ищу сотрудников</h2>
+        <form className="news-form" onSubmit={submitJob}>
+          <TextInput label="Должность" value={jobDraft.title} onChange={(title) => setJobDraft({ ...jobDraft, title })} required />
+          <TextInput label="Дата начала" type="date" value={jobDraft.startDate} onChange={(startDate) => setJobDraft({ ...jobDraft, startDate })} />
+          <label className="field">
+            <span>Дата окончания</span>
+            <input
+              type="date"
+              value={jobDraft.endDate}
+              onChange={(event) => setJobDraft({ ...jobDraft, endDate: event.target.value })}
+              disabled={jobDraft.isOpenEnded}
+            />
+          </label>
+          <label className="field checkbox-field">
+            <input
+              type="checkbox"
+              checked={jobDraft.isOpenEnded}
+              onChange={(event) => setJobDraft({ ...jobDraft, isOpenEnded: event.target.checked, endDate: event.target.checked ? '' : jobDraft.endDate })}
+            />
+            <span>Открытая дата окончания</span>
+          </label>
+          <TextInput label="Город" value={jobDraft.city} onChange={(city) => setJobDraft({ ...jobDraft, city })} required />
+          <TextInput label="Формат работы" value={jobDraft.workFormat} onChange={(workFormat) => setJobDraft({ ...jobDraft, workFormat })} placeholder="Офис, гибрид, удаленно" required />
+          <label className="field field-wide">
+            <span>Требования</span>
+            <textarea value={jobDraft.requirements} onChange={(event) => setJobDraft({ ...jobDraft, requirements: event.target.value })} required />
+          </label>
+          <label className="field field-wide">
+            <span>Задачи и обязанности</span>
+            <textarea value={jobDraft.responsibilities} onChange={(event) => setJobDraft({ ...jobDraft, responsibilities: event.target.value })} required />
+          </label>
+          <label className="field">
+            <span>Статус</span>
+            <select value={jobDraft.status} onChange={(event) => setJobDraft({ ...jobDraft, status: event.target.value as JobOpening['status'] })}>
+              <option value="active">Опубликована</option>
+              <option value="paused">Скрыта</option>
+            </select>
+          </label>
+          <button className="primary-action field-wide" type="submit">
+            <Plus size={18} />
+            Добавить вакансию
+          </button>
+        </form>
+
+        <div className="student-list">
+          {jobs.length === 0 && <p className="empty-state">Пока нет вакансий. Новые вакансии появятся на сайте после добавления.</p>}
+          {jobs.map((job) => (
+            <article className="student-card" key={job.id}>
+              {editingJob === job.id ? (
+                <JobEditor
+                  item={job}
+                  onCancel={() => setEditingJob(null)}
+                  onSave={async (payload) => {
+                    const updated = await api.updateJob(job.id, payload, token)
+                    onJobUpdated(updated)
+                    setEditingJob(null)
+                  }}
+                />
+              ) : (
+                <>
+                  <div className="student-top">
+                    <div>
+                      <span className={`news-status ${job.status === 'paused' ? 'is-pending' : 'is-approved'}`}>
+                        {job.status === 'paused' ? 'Скрыта' : 'Опубликована'}
+                      </span>
+                      <h3>{job.title}</h3>
+                      <p>{[job.city, job.workFormat, formatJobDates(job)].filter(Boolean).join(' · ')}</p>
+                    </div>
+                  </div>
+                  <dl className="student-details">
+                    <div>
+                      <dt>Требования</dt>
+                      <dd>{job.requirements || 'Не указано'}</dd>
+                    </div>
+                    <div>
+                      <dt>Задачи и обязанности</dt>
+                      <dd>{job.responsibilities || 'Не указано'}</dd>
+                    </div>
+                  </dl>
+                  <div className="row-actions">
+                    <button type="button" onClick={() => setEditingJob(job.id)}><Edit3 size={16} />Редактировать</button>
+                    <button type="button" onClick={async () => { await api.deleteJob(job.id, token); onJobDeleted(job.id) }}><Trash2 size={16} />Удалить</button>
+                  </div>
+                </>
               )}
             </article>
           ))}
@@ -835,6 +1115,58 @@ function NewsEditor({
   )
 }
 
+function JobEditor({
+  item,
+  onCancel,
+  onSave,
+}: {
+  item: JobOpening
+  onCancel: () => void
+  onSave: (payload: Partial<JobOpening>) => void
+}) {
+  const [draft, setDraft] = useState(item)
+
+  return (
+    <form className="news-form compact" onSubmit={(event) => { event.preventDefault(); onSave(draft) }}>
+      <TextInput label="Должность" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />
+      <TextInput label="Дата начала" type="date" value={draft.startDate} onChange={(startDate) => setDraft({ ...draft, startDate })} />
+      <label className="field">
+        <span>Дата окончания</span>
+        <input type="date" value={draft.endDate} onChange={(event) => setDraft({ ...draft, endDate: event.target.value })} disabled={draft.isOpenEnded} />
+      </label>
+      <label className="field checkbox-field">
+        <input
+          type="checkbox"
+          checked={draft.isOpenEnded}
+          onChange={(event) => setDraft({ ...draft, isOpenEnded: event.target.checked, endDate: event.target.checked ? '' : draft.endDate })}
+        />
+        <span>Открытая дата окончания</span>
+      </label>
+      <TextInput label="Город" value={draft.city} onChange={(city) => setDraft({ ...draft, city })} />
+      <TextInput label="Формат работы" value={draft.workFormat} onChange={(workFormat) => setDraft({ ...draft, workFormat })} />
+      <label className="field field-wide">
+        <span>Требования</span>
+        <textarea value={draft.requirements} onChange={(event) => setDraft({ ...draft, requirements: event.target.value })} />
+      </label>
+      <label className="field field-wide">
+        <span>Задачи и обязанности</span>
+        <textarea value={draft.responsibilities} onChange={(event) => setDraft({ ...draft, responsibilities: event.target.value })} />
+      </label>
+      <label className="field">
+        <span>Статус</span>
+        <select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as JobOpening['status'] })}>
+          <option value="active">Опубликована</option>
+          <option value="paused">Скрыта</option>
+        </select>
+      </label>
+      <div className="row-actions field-wide">
+        <button type="submit"><Check size={16} />Сохранить</button>
+        <button type="button" onClick={onCancel}><X size={16} />Отмена</button>
+      </div>
+    </form>
+  )
+}
+
 function TextInput({
   label,
   value,
@@ -876,6 +1208,17 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(date))
+}
+
+function formatJobDates(job: JobOpening) {
+  if (!job.startDate && !job.endDate && !job.isOpenEnded) {
+    return ''
+  }
+  const start = job.startDate ? formatDate(job.startDate) : 'дата старта открыта'
+  if (job.isOpenEnded) {
+    return `${start} · открытая дата окончания`
+  }
+  return job.endDate ? `${start} - ${formatDate(job.endDate)}` : start
 }
 
 export default App

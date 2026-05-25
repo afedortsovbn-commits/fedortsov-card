@@ -14,13 +14,22 @@ const port = process.env.PORT || 4174
 const adminPassword = process.env.ADMIN_PASSWORD || 'admin12345'
 const tokenSecret = process.env.ADMIN_TOKEN_SECRET || adminPassword
 const tokenLifetimeMs = 12 * 60 * 60 * 1000
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || ''
+const telegramChatId = process.env.TELEGRAM_CHAT_ID || ''
 
 app.use(cors())
 app.use(express.json({ limit: '3mb' }))
 
 async function readDb() {
   const content = await readFile(dbPath, 'utf8')
-  return JSON.parse(content)
+  const db = JSON.parse(content)
+  return {
+    news: [],
+    applications: [],
+    jobs: [],
+    resumes: [],
+    ...db,
+  }
 }
 
 async function writeDb(db) {
@@ -29,6 +38,34 @@ async function writeDb(db) {
 
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
+}
+
+function compactLines(lines) {
+  return lines.filter((line) => line && String(line).trim()).join('\n')
+}
+
+async function notifyTelegram(text) {
+  if (!telegramBotToken || !telegramChatId) {
+    return
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: telegramChatId,
+        text,
+        disable_web_page_preview: true,
+      }),
+    })
+
+    if (!response.ok) {
+      console.warn(`Telegram notification failed: ${response.status}`)
+    }
+  } catch (error) {
+    console.warn('Telegram notification failed:', error)
+  }
 }
 
 function signPayload(payload) {
@@ -115,6 +152,54 @@ app.delete('/api/news/:id', requireAdmin, async (request, response) => {
   response.status(204).end()
 })
 
+app.get('/api/jobs', async (_request, response) => {
+  const db = await readDb()
+  response.json(db.jobs.sort((a, b) => new Date(b.createdAt || b.startDate || 0) - new Date(a.createdAt || a.startDate || 0)))
+})
+
+app.post('/api/jobs', requireAdmin, async (request, response) => {
+  const db = await readDb()
+  const job = {
+    id: createId('job'),
+    createdAt: new Date().toISOString(),
+    title: request.body.title || '',
+    startDate: request.body.startDate || '',
+    endDate: request.body.isOpenEnded ? '' : request.body.endDate || '',
+    isOpenEnded: Boolean(request.body.isOpenEnded),
+    city: request.body.city || '',
+    workFormat: request.body.workFormat || '',
+    requirements: request.body.requirements || '',
+    responsibilities: request.body.responsibilities || '',
+    status: request.body.status === 'paused' ? 'paused' : 'active',
+  }
+  db.jobs.unshift(job)
+  await writeDb(db)
+  response.status(201).json(job)
+})
+
+app.put('/api/jobs/:id', requireAdmin, async (request, response) => {
+  const db = await readDb()
+  const index = db.jobs.findIndex((item) => item.id === request.params.id)
+  if (index === -1) {
+    response.status(404).json({ message: 'Вакансия не найдена' })
+    return
+  }
+  const nextJob = { ...db.jobs[index], ...request.body, id: request.params.id }
+  if (nextJob.isOpenEnded) {
+    nextJob.endDate = ''
+  }
+  db.jobs[index] = nextJob
+  await writeDb(db)
+  response.json(db.jobs[index])
+})
+
+app.delete('/api/jobs/:id', requireAdmin, async (request, response) => {
+  const db = await readDb()
+  db.jobs = db.jobs.filter((item) => item.id !== request.params.id)
+  await writeDb(db)
+  response.status(204).end()
+})
+
 app.get('/api/applications', requireAdmin, async (_request, response) => {
   const db = await readDb()
   response.json(db.applications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
@@ -139,7 +224,50 @@ app.post('/api/applications', async (request, response) => {
   }
   db.applications.unshift(application)
   await writeDb(db)
+  await notifyTelegram(compactLines([
+    'Новая заявка на практику',
+    `ФИО: ${application.fullName}`,
+    `Телефон: ${application.phone}`,
+    `Telegram: ${application.telegram}`,
+    `ВУЗ: ${application.university}`,
+    `Средний балл: ${application.gradeAverage}`,
+    `Факультет: ${application.faculty}`,
+    `Специализация: ${application.specialization}`,
+    `Курс: ${application.course}`,
+    `Год поступления: ${application.enrollmentYear}`,
+    `Даты практики: ${application.practiceDates}`,
+  ]))
   response.status(201).json(application)
+})
+
+app.post('/api/resumes', async (request, response) => {
+  const db = await readDb()
+  const job = db.jobs.find((item) => item.id === request.body.jobId)
+  const resume = {
+    id: createId('resume'),
+    createdAt: new Date().toISOString(),
+    jobId: request.body.jobId || '',
+    jobTitle: job?.title || request.body.jobTitle || '',
+    fullName: request.body.fullName || '',
+    phone: request.body.phone || '',
+    telegram: request.body.telegram || '',
+    email: request.body.email || '',
+    resumeLink: request.body.resumeLink || '',
+    comment: request.body.comment || '',
+  }
+  db.resumes.unshift(resume)
+  await writeDb(db)
+  await notifyTelegram(compactLines([
+    'Новый отклик на вакансию',
+    `Вакансия: ${resume.jobTitle || 'не указана'}`,
+    `ФИО: ${resume.fullName}`,
+    `Телефон: ${resume.phone}`,
+    `Telegram: ${resume.telegram}`,
+    `E-mail: ${resume.email}`,
+    `Резюме: ${resume.resumeLink}`,
+    `Комментарий: ${resume.comment}`,
+  ]))
+  response.status(201).json(resume)
 })
 
 app.put('/api/applications/:id', requireAdmin, async (request, response) => {
