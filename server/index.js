@@ -2,13 +2,14 @@ import cors from 'cors'
 import 'dotenv/config'
 import crypto from 'node:crypto'
 import express from 'express'
-import { readFile, writeFile } from 'node:fs/promises'
+import { access, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '..')
-const dbPath = path.join(__dirname, 'data', 'db.json')
+const bundledDbPath = path.join(__dirname, 'data', 'db.json')
+const dbPath = process.env.DB_PATH ? path.resolve(process.env.DB_PATH) : bundledDbPath
 const app = express()
 const port = process.env.PORT || 4174
 const adminPassword = process.env.ADMIN_PASSWORD || 'admin12345'
@@ -20,7 +21,17 @@ const telegramChatId = process.env.TELEGRAM_CHAT_ID || ''
 app.use(cors())
 app.use(express.json({ limit: '3mb' }))
 
+async function ensureDb() {
+  try {
+    await access(dbPath)
+  } catch {
+    await mkdir(path.dirname(dbPath), { recursive: true })
+    await copyFile(bundledDbPath, dbPath)
+  }
+}
+
 async function readDb() {
+  await ensureDb()
   const content = await readFile(dbPath, 'utf8')
   const db = JSON.parse(content)
   return {
@@ -33,6 +44,7 @@ async function readDb() {
 }
 
 async function writeDb(db) {
+  await ensureDb()
   await writeFile(dbPath, `${JSON.stringify(db, null, 2)}\n`, 'utf8')
 }
 
