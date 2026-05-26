@@ -167,11 +167,19 @@ const fallbackNews: NewsItem[] = [
 
 const api = {
   async login(password: string) {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    })
+    let response: Response
+    try {
+      response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+    } catch {
+      throw new Error('Серверная часть недоступна. Откройте админку по адресу Node-сервера, а не GitHub Pages.')
+    }
+    if (response.status === 404 || response.status === 405) {
+      throw new Error('Серверная часть недоступна. GitHub Pages не проверяет пароль и не сохраняет данные.')
+    }
     if (!response.ok) {
       throw new Error('Неверный пароль')
     }
@@ -737,8 +745,8 @@ function AdminLogin({ onBack, onLogin }: { onBack: () => void; onLogin: (passwor
             setError('')
             try {
               await onLogin(password)
-            } catch {
-              setError('Пароль не подошел. Проверьте ввод и попробуйте еще раз.')
+            } catch (error) {
+              setError(error instanceof Error ? error.message : 'Пароль не подошел. Проверьте ввод и попробуйте еще раз.')
             } finally {
               setLoading(false)
             }
