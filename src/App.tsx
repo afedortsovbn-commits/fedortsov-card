@@ -295,7 +295,7 @@ function App() {
   const [isPracticeOpen, setPracticeOpen] = useState(false)
   const [studentDraft, setStudentDraft] = useState(emptyStudent)
   const [resumeDraft, setResumeDraft] = useState(emptyResume)
-  const [isQrOpen, setQrOpen] = useState(false)
+  const [isQrOpen, setQrOpen] = useState(window.location.hash === '#qr')
   const [notice, setNotice] = useState('')
   const [route, setRoute] = useState(window.location.hash === '#admin' ? 'admin' : 'site')
 
@@ -332,10 +332,30 @@ function App() {
   }, [adminToken])
 
   useEffect(() => {
-    const onHashChange = () => setRoute(window.location.hash === '#admin' ? 'admin' : 'site')
+    const onHashChange = () => {
+      setRoute(window.location.hash === '#admin' ? 'admin' : 'site')
+      if (window.location.hash === '#qr') {
+        setQrOpen(true)
+      }
+    }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
+
+  const openQr = () => {
+    if (window.location.hash === '#qr') {
+      setQrOpen(true)
+      return
+    }
+    window.location.hash = 'qr'
+  }
+
+  const closeQr = () => {
+    setQrOpen(false)
+    if (window.location.hash === '#qr') {
+      window.history.pushState('', document.title, `${window.location.pathname}${window.location.search}`)
+    }
+  }
 
   const submitPractice = async (event: FormEvent) => {
     event.preventDefault()
@@ -505,14 +525,14 @@ function App() {
       )}
 
       {isQrOpen && (
-        <Modal title="QR-код сайта" onClose={() => setQrOpen(false)}>
+        <Modal title="QR-код сайта" onClose={closeQr}>
           <div className="qr-modal">
             <img src={publicAsset('/images/site-qr.svg')} alt="QR-код сайта" />
           </div>
         </Modal>
       )}
 
-      {!isAdmin && <ShareActions onQr={() => setQrOpen(true)} />}
+      {!isAdmin && <ShareActions onQr={openQr} />}
     </>
   )
 }
@@ -577,12 +597,14 @@ function Hero({ onPractice }: { onPractice: () => void }) {
 }
 
 function Contacts() {
-  const contacts: ({ label: string; href: string; icon: LucideIcon } | { label: string; href: string; brand: 'in' | 'ig' })[] = [
+  const contacts: ({ label: string; href: string; icon: LucideIcon } | { label: string; href: string; brand: 'in' | 'ig' | 'threads' | 'tenchat' })[] = [
     { label: '+375 29 690 88 59', href: 'tel:+375296908859', icon: Phone },
     { label: 'A.Fedortsov@beloil.by', href: 'mailto:A.Fedortsov@beloil.by', icon: Mail },
     { label: '@Alex_Fedortsov', href: 'https://t.me/Alex_Fedortsov', icon: Send },
     { label: 'Александр Федорцов', href: 'https://www.linkedin.com/in/александр-федорцов-246a02a5', brand: 'in' },
     { label: '@alexandrfedartsov', href: 'https://www.instagram.com/alexandrfedartsov', brand: 'ig' },
+    { label: 'Threads', href: 'https://www.threads.com/@alexandrfedortsov', brand: 'threads' },
+    { label: 'TenChat', href: 'https://m.tenchat.ru/u/sxKC4cSd', brand: 'tenchat' },
   ]
 
   return (
@@ -608,8 +630,15 @@ function Contacts() {
   )
 }
 
-function BrandMark({ kind }: { kind: 'in' | 'ig' }) {
-  return <span className={`brand-mark brand-mark-${kind}`} aria-hidden="true">{kind === 'in' ? 'in' : '◎'}</span>
+function BrandMark({ kind }: { kind: 'in' | 'ig' | 'threads' | 'tenchat' }) {
+  const label = {
+    in: 'in',
+    ig: '◎',
+    threads: '@',
+    tenchat: 'T',
+  }[kind]
+
+  return <span className={`brand-mark brand-mark-${kind}`} aria-hidden="true">{label}</span>
 }
 
 function JobsSection({ jobs, onRespond }: { jobs: JobOpening[]; onRespond: (job: JobOpening) => void }) {
