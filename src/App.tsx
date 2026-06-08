@@ -141,7 +141,10 @@ const statusOptions: StudentStatus[] = [
   'Отказано',
 ]
 
-const practiceApiBase = import.meta.env.VITE_PRACTICE_API_URL?.replace(/\/$/, '') || ''
+const practiceApiBase = import.meta.env.VITE_PRACTICE_API_URL?.replace(/\/$/, '')
+  || (window.location.hostname.endsWith('github.io')
+    ? 'https://fedortsov-card-api.afedortsovbn.workers.dev'
+    : '')
 
 const fallbackNews: NewsItem[] = [
   {
