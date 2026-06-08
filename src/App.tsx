@@ -13,6 +13,7 @@ import {
   Megaphone,
   MessageCircle,
   Newspaper,
+  Paperclip,
   Phone,
   Plus,
   QrCode,
@@ -72,6 +73,7 @@ type JobOpening = {
   isOpenEnded: boolean
   city: string
   workFormat: string
+  conditions: string
   requirements: string
   responsibilities: string
   status: 'active' | 'paused'
@@ -114,11 +116,12 @@ const emptyNews: Omit<NewsItem, 'id'> = {
 
 const emptyJob: JobDraft = {
   title: '',
-  startDate: '',
+  startDate: new Date().toLocaleDateString('en-CA'),
   endDate: '',
   isOpenEnded: true,
   city: '',
   workFormat: '',
+  conditions: '',
   requirements: '',
   responsibilities: '',
   status: 'active',
@@ -220,13 +223,26 @@ const api = {
     }
     return response.json() as Promise<{ token: string }>
   },
+  async changePassword(currentPassword: string, newPassword: string, token: string) {
+    const response = await fetch(cloudApi('/api/auth/password'), {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ currentPassword, newPassword }),
+    })
+    const result = await response.json() as { changed?: boolean; message?: string }
+    if (!response.ok) {
+      throw new Error(result.message || 'Не удалось изменить пароль')
+    }
+    return result
+  },
   async listNews() {
     const response = await fetch('/api/news')
     return response.json() as Promise<NewsItem[]>
   },
   async listJobs() {
     const response = await fetch(cloudApi('/api/jobs'))
-    return response.json() as Promise<JobOpening[]>
+    const jobs = await response.json() as JobOpening[]
+    return jobs.map((job) => ({ ...job, conditions: job.conditions || '' }))
   },
   async createNews(payload: Omit<NewsItem, 'id'>, token: string) {
     const response = await fetch('/api/news', {
@@ -296,11 +312,15 @@ const api = {
   async deleteStudent(id: string, token: string) {
     await fetch(`/api/applications/${id}`, { method: 'DELETE', headers: authHeaders(token) })
   },
-  async createResume(payload: ResumeDraft) {
+  async createResume(payload: ResumeDraft, resumeFile: File | null) {
+    const body = new FormData()
+    Object.entries(payload).forEach(([key, value]) => body.set(key, value))
+    if (resumeFile) {
+      body.set('resumeFile', resumeFile)
+    }
     const response = await fetch(cloudApi('/api/resumes'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body,
     })
     const result = await response.json() as { sent?: boolean; message?: string }
     if (!response.ok) {
@@ -338,11 +358,14 @@ function App() {
   const [students, setStudents] = useState<StudentApplication[]>([])
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem('fedortsov-admin-token') || '')
   const [activeNews, setActiveNews] = useState<NewsItem | null>(null)
+  const [viewedJob, setViewedJob] = useState<JobOpening | null>(null)
   const [activeJob, setActiveJob] = useState<JobOpening | null>(null)
   const [isPracticeOpen, setPracticeOpen] = useState(false)
   const [isPracticeSubmitting, setPracticeSubmitting] = useState(false)
   const [studentDraft, setStudentDraft] = useState(emptyStudent)
   const [resumeDraft, setResumeDraft] = useState(emptyResume)
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [isResumeSubmitting, setResumeSubmitting] = useState(false)
   const [isQrOpen, setQrOpen] = useState(isQrAddress)
   const [notice, setNotice] = useState('')
   const [route, setRoute] = useState(window.location.hash === '#admin' ? 'admin' : 'site')
@@ -434,10 +457,32 @@ function App() {
     if (!activeJob) {
       return
     }
-    await api.createResume({ ...resumeDraft, jobId: activeJob.id, jobTitle: activeJob.title })
-    setResumeDraft(emptyResume)
-    setActiveJob(null)
-    setNotice('Отклик отправлен. Александр получит резюме в Telegram.')
+    if (resumeFile) {
+      const extension = resumeFile.name.toLowerCase().split('.').pop()
+      if (!['pdf', 'doc', 'docx'].includes(extension || '')) {
+        setNotice('Файл резюме должен быть в формате PDF, DOC или DOCX')
+        return
+      }
+      if (resumeFile.size > 10 * 1024 * 1024) {
+        setNotice('Размер файла резюме не должен превышать 10 МБ')
+        return
+      }
+    }
+    setResumeSubmitting(true)
+    try {
+      await api.createResume(
+        { ...resumeDraft, jobId: activeJob.id, jobTitle: activeJob.title },
+        resumeFile,
+      )
+      setResumeDraft(emptyResume)
+      setResumeFile(null)
+      setActiveJob(null)
+      setNotice('Отклик успешно отправлен в Telegram.')
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Не удалось отправить отклик')
+    } finally {
+      setResumeSubmitting(false)
+    }
   }
 
   const refreshNewsItem = (updated: NewsItem) => {
@@ -514,7 +559,7 @@ function App() {
         <main>
           <Hero onPractice={() => setPracticeOpen(true)} />
           <Contacts />
-          <JobsSection jobs={publicJobs} onRespond={setActiveJob} />
+          <JobsSection jobs={publicJobs} onOpen={setViewedJob} />
           <NewsSection news={publicNews} onOpen={setActiveNews} />
           <Projects />
         </main>
@@ -569,6 +614,41 @@ function App() {
         </Modal>
       )}
 
+      {viewedJob && (
+        <Modal title={viewedJob.title} onClose={() => setViewedJob(null)}>
+          <article className="job-full">
+            <p className="job-meta">
+              {[viewedJob.city, viewedJob.workFormat, formatJobDates(viewedJob)].filter(Boolean).join(' · ')}
+            </p>
+            {viewedJob.conditions && (
+              <section>
+                <h3>Условия работы</h3>
+                <p>{viewedJob.conditions}</p>
+              </section>
+            )}
+            <section>
+              <h3>Задачи и обязанности</h3>
+              <p>{viewedJob.responsibilities}</p>
+            </section>
+            <section>
+              <h3>Требования</h3>
+              <p>{viewedJob.requirements}</p>
+            </section>
+            <button
+              className="primary-action"
+              type="button"
+              onClick={() => {
+                setActiveJob(viewedJob)
+                setViewedJob(null)
+              }}
+            >
+              <Send size={18} />
+              Отправить резюме
+            </button>
+          </article>
+        </Modal>
+      )}
+
       {activeJob && (
         <Modal title="Отправить резюме" onClose={() => setActiveJob(null)}>
           <form className="practice-form" onSubmit={submitResume}>
@@ -581,13 +661,22 @@ function App() {
             <TextInput label="Телеграм" value={resumeDraft.telegram} onChange={(telegram) => setResumeDraft({ ...resumeDraft, telegram })} required />
             <TextInput label="E-mail" type="email" value={resumeDraft.email} onChange={(email) => setResumeDraft({ ...resumeDraft, email })} />
             <TextInput label="Ссылка на резюме" value={resumeDraft.resumeLink} onChange={(resumeLink) => setResumeDraft({ ...resumeDraft, resumeLink })} placeholder="Google Drive, hh, LinkedIn или другой URL" />
+            <label className="field field-wide file-field">
+              <span>Файл резюме (необязательно)</span>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(event) => setResumeFile(event.target.files?.[0] || null)}
+              />
+              <small>PDF, DOC или DOCX, до 10 МБ</small>
+            </label>
             <label className="field field-wide">
               <span>Комментарий</span>
               <textarea value={resumeDraft.comment} onChange={(event) => setResumeDraft({ ...resumeDraft, comment: event.target.value })} />
             </label>
-            <button className="primary-action field-wide" type="submit">
-              <Send size={18} />
-              Отправить резюме
+            <button className="primary-action field-wide" type="submit" disabled={isResumeSubmitting}>
+              {resumeFile ? <Paperclip size={18} /> : <Send size={18} />}
+              {isResumeSubmitting ? 'Отправляю...' : 'Отправить резюме'}
             </button>
           </form>
         </Modal>
@@ -710,7 +799,7 @@ function BrandMark({ kind }: { kind: 'in' | 'ig' | 'threads' | 'tenchat' }) {
   return <span className={`brand-mark brand-mark-${kind}`} aria-hidden="true">{label}</span>
 }
 
-function JobsSection({ jobs, onRespond }: { jobs: JobOpening[]; onRespond: (job: JobOpening) => void }) {
+function JobsSection({ jobs, onOpen }: { jobs: JobOpening[]; onOpen: (job: JobOpening) => void }) {
   if (jobs.length === 0) {
     return null
   }
@@ -724,25 +813,13 @@ function JobsSection({ jobs, onRespond }: { jobs: JobOpening[]; onRespond: (job:
       <div className="job-grid">
         {jobs.map((job) => (
           <article className="job-card" key={job.id}>
-            <div>
-              <h3>{job.title}</h3>
-              <p className="job-meta">
-                {[job.city, job.workFormat, formatJobDates(job)].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-            <dl className="job-details">
-              <div>
-                <dt>Требования</dt>
-                <dd>{job.requirements}</dd>
-              </div>
-              <div>
-                <dt>Задачи и обязанности</dt>
-                <dd>{job.responsibilities}</dd>
-              </div>
-            </dl>
-            <button className="primary-action" type="button" onClick={() => onRespond(job)}>
-              <Send size={18} />
-              Отправить резюме
+            <h3>{job.title}</h3>
+            <p className="job-meta">
+              {[job.city, job.conditions].filter(Boolean).join(' · ')}
+            </p>
+            <button className="job-open-button" type="button" onClick={() => onOpen(job)}>
+              Подробнее
+              <ExternalLink size={16} />
             </button>
           </article>
         ))}
@@ -911,6 +988,10 @@ function AdminPanel({
   const [editingJob, setEditingJob] = useState<string | null>(null)
   const [editingStudent, setEditingStudent] = useState<string | null>(null)
   const [studentDrafts, setStudentDrafts] = useState<Record<string, StudentApplication>>({})
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordMessage, setPasswordMessage] = useState('')
 
   const studentStats = useMemo(
     () => ({
@@ -933,7 +1014,25 @@ function AdminPanel({
     event.preventDefault()
     const created = await api.createJob(jobDraft, token)
     onJobCreated(created)
-    setJobDraft(emptyJob)
+    setJobDraft({ ...emptyJob, startDate: new Date().toLocaleDateString('en-CA') })
+  }
+
+  const submitPassword = async (event: FormEvent) => {
+    event.preventDefault()
+    setPasswordMessage('')
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage('Новые пароли не совпадают')
+      return
+    }
+    try {
+      await api.changePassword(currentPassword, newPassword, token)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setPasswordMessage('Пароль успешно изменён')
+    } catch (error) {
+      setPasswordMessage(error instanceof Error ? error.message : 'Не удалось изменить пароль')
+    }
   }
 
   const updateStudentField = (student: StudentApplication, field: keyof StudentApplication, value: string) => {
@@ -966,6 +1065,20 @@ function AdminPanel({
         <span>Согласовано: <strong>{studentStats.agreed}</strong></span>
         <span>Ожидают ответа: <strong>{studentStats.waiting}</strong></span>
       </div>
+
+      <section className="admin-section">
+        <h2>Смена пароля</h2>
+        <form className="news-form password-form" onSubmit={submitPassword}>
+          <TextInput label="Текущий пароль" type="password" value={currentPassword} onChange={setCurrentPassword} required />
+          <TextInput label="Новый пароль" type="password" value={newPassword} onChange={setNewPassword} required />
+          <TextInput label="Повторите новый пароль" type="password" value={confirmPassword} onChange={setConfirmPassword} required />
+          {passwordMessage && <p className="password-message">{passwordMessage}</p>}
+          <button className="primary-action field-wide" type="submit">
+            <ShieldCheck size={18} />
+            Изменить пароль
+          </button>
+        </form>
+      </section>
 
       <section className="admin-section">
         <h2>Управление новостями</h2>
@@ -1046,12 +1159,16 @@ function AdminPanel({
           <TextInput label="Город" value={jobDraft.city} onChange={(city) => setJobDraft({ ...jobDraft, city })} required />
           <TextInput label="Формат работы" value={jobDraft.workFormat} onChange={(workFormat) => setJobDraft({ ...jobDraft, workFormat })} placeholder="Офис, гибрид, удаленно" required />
           <label className="field field-wide">
-            <span>Требования</span>
-            <textarea value={jobDraft.requirements} onChange={(event) => setJobDraft({ ...jobDraft, requirements: event.target.value })} required />
+            <span>Условия работы (необязательно)</span>
+            <textarea value={jobDraft.conditions} onChange={(event) => setJobDraft({ ...jobDraft, conditions: event.target.value })} />
           </label>
           <label className="field field-wide">
             <span>Задачи и обязанности</span>
             <textarea value={jobDraft.responsibilities} onChange={(event) => setJobDraft({ ...jobDraft, responsibilities: event.target.value })} required />
+          </label>
+          <label className="field field-wide">
+            <span>Требования</span>
+            <textarea value={jobDraft.requirements} onChange={(event) => setJobDraft({ ...jobDraft, requirements: event.target.value })} required />
           </label>
           <label className="field">
             <span>Статус</span>
@@ -1088,17 +1205,21 @@ function AdminPanel({
                         {job.status === 'paused' ? 'Скрыта' : 'Опубликована'}
                       </span>
                       <h3>{job.title}</h3>
-                      <p>{[job.city, job.workFormat, formatJobDates(job)].filter(Boolean).join(' · ')}</p>
+                      <p>{[job.city, job.workFormat, job.conditions, formatJobDates(job)].filter(Boolean).join(' · ')}</p>
                     </div>
                   </div>
                   <dl className="student-details">
                     <div>
-                      <dt>Требования</dt>
-                      <dd>{job.requirements || 'Не указано'}</dd>
+                      <dt>Условия работы</dt>
+                      <dd>{job.conditions || 'Не указано'}</dd>
                     </div>
                     <div>
                       <dt>Задачи и обязанности</dt>
                       <dd>{job.responsibilities || 'Не указано'}</dd>
+                    </div>
+                    <div>
+                      <dt>Требования</dt>
+                      <dd>{job.requirements || 'Не указано'}</dd>
                     </div>
                   </dl>
                   <div className="row-actions">
@@ -1251,12 +1372,16 @@ function JobEditor({
       <TextInput label="Город" value={draft.city} onChange={(city) => setDraft({ ...draft, city })} />
       <TextInput label="Формат работы" value={draft.workFormat} onChange={(workFormat) => setDraft({ ...draft, workFormat })} />
       <label className="field field-wide">
-        <span>Требования</span>
-        <textarea value={draft.requirements} onChange={(event) => setDraft({ ...draft, requirements: event.target.value })} />
+        <span>Условия работы (необязательно)</span>
+        <textarea value={draft.conditions} onChange={(event) => setDraft({ ...draft, conditions: event.target.value })} />
       </label>
       <label className="field field-wide">
         <span>Задачи и обязанности</span>
         <textarea value={draft.responsibilities} onChange={(event) => setDraft({ ...draft, responsibilities: event.target.value })} />
+      </label>
+      <label className="field field-wide">
+        <span>Требования</span>
+        <textarea value={draft.requirements} onChange={(event) => setDraft({ ...draft, requirements: event.target.value })} />
       </label>
       <label className="field">
         <span>Статус</span>

@@ -5,7 +5,9 @@ const allowedOrigins = new Set([
 ])
 
 const jobsKey = 'jobs'
+const adminPasswordKey = 'admin-password'
 const tokenLifetimeMs = 12 * 60 * 60 * 1000
+const maxResumeSize = 10 * 1024 * 1024
 
 const applicationRequiredFields = [
   ['fullName', 'ФИО'],
@@ -80,6 +82,27 @@ async function createAdminToken(secret) {
   return `${payload}.${encodeBase64Url(await hmac(payload, secret))}`
 }
 
+async function derivePasswordHash(password, salt, secret) {
+  return encodeBase64Url(await hmac(`${salt}:${password}`, secret))
+}
+
+async function verifyPassword(password, env) {
+  const stored = await env.JOBS.get(adminPasswordKey, 'json')
+  if (stored?.salt && stored?.hash) {
+    return await derivePasswordHash(password, stored.salt, env.ADMIN_TOKEN_SECRET) === stored.hash
+  }
+  return Boolean(env.ADMIN_PASSWORD) && password === env.ADMIN_PASSWORD
+}
+
+async function savePassword(password, env) {
+  const salt = crypto.randomUUID()
+  await env.JOBS.put(adminPasswordKey, JSON.stringify({
+    salt,
+    hash: await derivePasswordHash(password, salt, env.ADMIN_TOKEN_SECRET),
+    updatedAt: new Date().toISOString(),
+  }))
+}
+
 async function verifyAdmin(request, env) {
   const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
   if (!token || !token.includes('.') || !env.ADMIN_TOKEN_SECRET) {
@@ -107,7 +130,8 @@ async function requireAdmin(request, env, origin) {
 }
 
 async function readJobs(env) {
-  return (await env.JOBS.get(jobsKey, 'json')) || []
+  const jobs = (await env.JOBS.get(jobsKey, 'json')) || []
+  return jobs.map((job) => ({ conditions: '', ...job }))
 }
 
 async function writeJobs(env, jobs) {
@@ -124,6 +148,7 @@ function normalizeJob(data, existing = {}) {
     isOpenEnded,
     city: clean(data.city, 100),
     workFormat: clean(data.workFormat, 100),
+    conditions: clean(data.conditions, 2000),
     requirements: clean(data.requirements, 4000),
     responsibilities: clean(data.responsibilities, 4000),
     status: data.status === 'paused' ? 'paused' : 'active',
@@ -175,6 +200,34 @@ async function sendTelegram(env, text) {
         disable_web_page_preview: true,
       }),
     },
+  )
+  return response.ok
+}
+
+function isAllowedResume(file) {
+  if (!(file instanceof File) || file.size === 0 || file.size > maxResumeSize) {
+    return false
+  }
+  const allowedTypes = new Set([
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ])
+  const extension = file.name.toLowerCase().split('.').pop()
+  return allowedTypes.has(file.type) || ['pdf', 'doc', 'docx'].includes(extension)
+}
+
+async function sendTelegramDocument(env, text, file) {
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
+    return false
+  }
+  const form = new FormData()
+  form.set('chat_id', env.TELEGRAM_CHAT_ID)
+  form.set('caption', text.slice(0, 1024))
+  form.set('document', file, file.name)
+  const response = await fetch(
+    `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument`,
+    { method: 'POST', body: form },
   )
   return response.ok
 }
@@ -231,12 +284,28 @@ export default {
 
     if (request.method === 'POST' && url.pathname === '/api/auth/login') {
       const data = await readJson(request)
-      if (!env.ADMIN_PASSWORD || data.password !== env.ADMIN_PASSWORD) {
+      if (!await verifyPassword(clean(data.password, 200), env)) {
         return jsonResponse({ message: 'Неверный пароль' }, 401, origin)
       }
       return jsonResponse({
         token: await createAdminToken(env.ADMIN_TOKEN_SECRET),
       }, 200, origin)
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/auth/password') {
+      const unauthorized = await requireAdmin(request, env, origin)
+      if (unauthorized) return unauthorized
+      const data = await readJson(request)
+      const currentPassword = clean(data.currentPassword, 200)
+      const newPassword = clean(data.newPassword, 200)
+      if (!await verifyPassword(currentPassword, env)) {
+        return jsonResponse({ message: 'Текущий пароль указан неверно' }, 400, origin)
+      }
+      if (newPassword.length < 10) {
+        return jsonResponse({ message: 'Новый пароль должен содержать не менее 10 символов' }, 400, origin)
+      }
+      await savePassword(newPassword, env)
+      return jsonResponse({ changed: true }, 200, origin)
     }
 
     if (url.pathname === '/api/jobs') {
@@ -320,13 +389,30 @@ export default {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/resumes') {
-      const data = await readJson(request)
+      let data
+      let file = null
+      const contentType = request.headers.get('Content-Type') || ''
+      if (contentType.includes('multipart/form-data')) {
+        const form = await request.formData()
+        data = Object.fromEntries(form.entries())
+        file = form.get('resumeFile')
+        if (file && !isAllowedResume(file)) {
+          return jsonResponse({
+            message: 'Файл должен быть в формате PDF, DOC или DOCX и размером не более 10 МБ',
+          }, 400, origin)
+        }
+      } else {
+        data = await readJson(request)
+      }
       if (!clean(data.fullName) || !clean(data.phone)) {
         return jsonResponse({ message: 'Укажите ФИО и телефон' }, 400, origin)
       }
-      if (!await sendTelegram(env, resumeText(data))) {
+      const sent = file
+        ? await sendTelegramDocument(env, resumeText(data), file)
+        : await sendTelegram(env, resumeText(data))
+      if (!sent) {
         return jsonResponse({
-          message: 'Не удалось отправить отклик. Попробуйте ещё раз позже',
+          message: 'Telegram не принял отклик. Проверьте файл и попробуйте ещё раз',
         }, 502, origin)
       }
       return jsonResponse({ sent: true }, 201, origin)

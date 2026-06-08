@@ -391,7 +391,7 @@ h1 {
 
 .job-card {
   display: grid;
-  gap: 16px;
+  gap: 10px;
   padding: 22px;
   border: 1px solid rgba(238, 187, 90, 0.24);
   border-radius: 8px;
@@ -407,21 +407,42 @@ h1 {
 .job-meta {
   margin: 0;
   color: var(--text-muted);
+  font-size: 14px;
 }
 
-.job-details {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-}
-
-.job-details dt {
+.job-open-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
   color: var(--gold);
+  background: transparent;
+  font: inherit;
   font-weight: 800;
+  cursor: pointer;
 }
 
-.job-details dd {
-  margin: 4px 0 0;
+.job-full {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+}
+
+.job-full section {
+  display: grid;
+  gap: 6px;
+}
+
+.job-full h3 {
+  margin: 0;
+  color: var(--gold);
+}
+
+.job-full p {
+  margin: 0;
   color: var(--text);
   white-space: pre-line;
 }
@@ -538,6 +559,24 @@ h1 {
 .field textarea {
   min-height: 118px;
   resize: vertical;
+}
+
+.field small {
+  color: var(--text-muted);
+}
+
+.file-field input {
+  padding: 10px;
+}
+
+.file-field input::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(238, 187, 90, 0.32);
+  border-radius: 6px;
+  color: var(--text-strong);
+  background: rgba(238, 187, 90, 0.12);
+  cursor: pointer;
 }
 
 .primary-action {
@@ -725,6 +764,16 @@ h1 {
 
 .admin-section {
   padding: 18px;
+}
+
+.password-form {
+  padding-inline: 0;
+}
+
+.password-message {
+  align-self: end;
+  margin: 0;
+  color: var(--gold-soft);
 }
 
 .admin-list,
