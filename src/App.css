@@ -220,29 +220,26 @@ h1 {
   flex: 0 0 auto;
   width: 24px;
   height: 24px;
-  border-radius: 6px;
-  color: #fff;
+  color: var(--gold);
   font-size: 14px;
   font-weight: 900;
   line-height: 1;
 }
 
 .brand-mark-in {
-  background: #0a66c2;
+  font-size: 15px;
 }
 
 .brand-mark-ig {
-  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
-  font-size: 18px;
+  font-size: 22px;
 }
 
 .brand-mark-threads {
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: #0f1115;
+  font-size: 19px;
 }
 
 .brand-mark-tenchat {
-  background: linear-gradient(135deg, #1769ff, #00b8ff);
+  font-size: 17px;
 }
 
 .telegram-channel {

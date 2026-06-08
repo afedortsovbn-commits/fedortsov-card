@@ -285,6 +285,10 @@ function isStaticPagesHost() {
   return window.location.hostname.endsWith('github.io')
 }
 
+function isQrAddress() {
+  return window.location.hash === '#qr' || new URLSearchParams(window.location.search).get('qr') === '1'
+}
+
 function App() {
   const [news, setNews] = useState<NewsItem[]>(fallbackNews)
   const [jobs, setJobs] = useState<JobOpening[]>([])
@@ -295,7 +299,7 @@ function App() {
   const [isPracticeOpen, setPracticeOpen] = useState(false)
   const [studentDraft, setStudentDraft] = useState(emptyStudent)
   const [resumeDraft, setResumeDraft] = useState(emptyResume)
-  const [isQrOpen, setQrOpen] = useState(window.location.hash === '#qr')
+  const [isQrOpen, setQrOpen] = useState(isQrAddress)
   const [notice, setNotice] = useState('')
   const [route, setRoute] = useState(window.location.hash === '#admin' ? 'admin' : 'site')
 
@@ -332,29 +336,34 @@ function App() {
   }, [adminToken])
 
   useEffect(() => {
-    const onHashChange = () => {
+    const onLocationChange = () => {
       setRoute(window.location.hash === '#admin' ? 'admin' : 'site')
-      if (window.location.hash === '#qr') {
-        setQrOpen(true)
-      }
+      setQrOpen(isQrAddress())
     }
-    window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
+    window.addEventListener('hashchange', onLocationChange)
+    window.addEventListener('popstate', onLocationChange)
+    return () => {
+      window.removeEventListener('hashchange', onLocationChange)
+      window.removeEventListener('popstate', onLocationChange)
+    }
   }, [])
 
   const openQr = () => {
-    if (window.location.hash === '#qr') {
-      setQrOpen(true)
-      return
-    }
-    window.location.hash = 'qr'
+    const url = new URL(window.location.href)
+    url.searchParams.set('qr', '1')
+    url.hash = ''
+    window.history.pushState('', document.title, url)
+    setQrOpen(true)
   }
 
   const closeQr = () => {
     setQrOpen(false)
-    if (window.location.hash === '#qr') {
-      window.history.pushState('', document.title, `${window.location.pathname}${window.location.search}`)
+    const url = new URL(window.location.href)
+    url.searchParams.delete('qr')
+    if (url.hash === '#qr') {
+      url.hash = ''
     }
+    window.history.pushState('', document.title, url)
   }
 
   const submitPractice = async (event: FormEvent) => {
