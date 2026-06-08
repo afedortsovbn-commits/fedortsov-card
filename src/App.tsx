@@ -9,12 +9,14 @@ import {
   Edit3,
   ExternalLink,
   GraduationCap,
+  Gift,
   Mail,
   Megaphone,
   MessageCircle,
   Newspaper,
   Paperclip,
   Phone,
+  Presentation,
   Plus,
   QrCode,
   Send,
@@ -825,6 +827,18 @@ function Projects() {
           </button>
         </article>
         <a
+          href="https://afedortsovbn-commits.github.io/poll-slide-studio/"
+          className="project-card"
+          aria-label="Интерактивные презентации"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Presentation />
+          <h3>Интерактивные презентации</h3>
+          <p>Конструктор презентаций с админкой, QR-опросами, голосованием и результатами в реальном времени.</p>
+          <span>Открыть сервис <ExternalLink size={16} /></span>
+        </a>
+        <a
           href={publicAsset('/downloads/expense-control.apk')}
           className="project-card"
           aria-label="Скачать приложение для контроля расходов"
@@ -834,6 +848,18 @@ function Projects() {
           <h3>Контроль расходов</h3>
           <p>Мобильное приложение для Android, чтобы фиксировать расходы и держать личные финансы под контролем.</p>
           <span>Скачать APK <ExternalLink size={16} /></span>
+        </a>
+        <a
+          href="https://afedortsovbn-commits.github.io/Suvenir/"
+          className="project-card"
+          aria-label="Каталог сувенирной продукции"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Gift />
+          <h3>Каталог сувенирной продукции</h3>
+          <p>Управляемый каталог сувениров с выбором позиций, подробными характеристиками и формированием PDF.</p>
+          <span>Открыть каталог <ExternalLink size={16} /></span>
         </a>
       </div>
       {isCompetencyOpen && (
