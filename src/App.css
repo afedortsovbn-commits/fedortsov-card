@@ -568,6 +568,16 @@ h1 {
   white-space: pre-line;
 }
 
+.news-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--gold);
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .toast {
   position: fixed;
   z-index: 60;
@@ -818,10 +828,15 @@ h1 {
   }
 
   .contact-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .contact-grid a {
+    flex: 0 1 auto;
+    min-width: 190px;
+    padding-inline: 10px;
     justify-content: center;
     text-align: center;
   }
