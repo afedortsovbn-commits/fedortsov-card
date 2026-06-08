@@ -141,6 +141,8 @@ const statusOptions: StudentStatus[] = [
   'Отказано',
 ]
 
+const practiceApiBase = import.meta.env.VITE_PRACTICE_API_URL?.replace(/\/$/, '') || ''
+
 const fallbackNews: NewsItem[] = [
   {
     id: 'news-1',
@@ -239,7 +241,7 @@ const api = {
     return response.json() as Promise<StudentApplication[]>
   },
   async createStudent(payload: StudentDraft) {
-    const response = await fetch('/api/applications', {
+    const response = await fetch(`${practiceApiBase}/api/applications`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

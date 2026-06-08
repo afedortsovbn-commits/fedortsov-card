@@ -36,6 +36,8 @@ jobs:
 
       - name: Собрать сайт
         run: npm run build
+        env:
+          VITE_PRACTICE_API_URL: ${{ vars.PRACTICE_API_URL }}
 
       - name: Подготовить GitHub Pages
         uses: actions/configure-pages@v5
