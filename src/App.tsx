@@ -1,6 +1,6 @@
 import type { FormEvent, ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Award,
   BriefcaseBusiness,
@@ -41,16 +41,7 @@ type NewsItem = {
 
 type NewsStatus = 'pending' | 'approved'
 
-type StudentStatus =
-  | ''
-  | 'На рассмотрении'
-  | 'Ожидаю обратную связь'
-  | 'Согласовано'
-  | 'Отказано'
-
-type StudentApplication = {
-  id: string
-  createdAt: string
+type StudentDraft = {
   fullName: string
   phone: string
   telegram: string
@@ -61,7 +52,6 @@ type StudentApplication = {
   course: string
   enrollmentYear: string
   practiceDates: string
-  status: StudentStatus
 }
 
 type JobOpening = {
@@ -79,7 +69,6 @@ type JobOpening = {
   status: 'active' | 'paused'
 }
 
-type StudentDraft = Omit<StudentApplication, 'id' | 'createdAt' | 'status'>
 type JobDraft = Omit<JobOpening, 'id' | 'createdAt'>
 
 type ResumeDraft = {
@@ -137,14 +126,6 @@ const emptyResume: ResumeDraft = {
   resumeLink: '',
   comment: '',
 }
-
-const statusOptions: StudentStatus[] = [
-  '',
-  'На рассмотрении',
-  'Ожидаю обратную связь',
-  'Согласовано',
-  'Отказано',
-]
 
 const practiceApiBase = import.meta.env.VITE_PRACTICE_API_URL?.replace(/\/$/, '')
   || (window.location.hostname.endsWith('github.io')
@@ -282,13 +263,6 @@ const api = {
   async deleteJob(id: string, token: string) {
     await fetch(cloudApi(`/api/jobs/${id}`), { method: 'DELETE', headers: authHeaders(token) })
   },
-  async listStudents(token: string) {
-    const response = await fetch(cloudApi('/api/applications'), { headers: authHeaders(token) })
-    if (!response.ok) {
-      throw new Error('Нужно войти в админку')
-    }
-    return response.json() as Promise<StudentApplication[]>
-  },
   async createStudent(payload: StudentDraft) {
     const response = await fetch(`${practiceApiBase}/api/applications`, {
       method: 'POST',
@@ -300,17 +274,6 @@ const api = {
       throw new Error(result.message || 'Не удалось отправить заявку')
     }
     return result
-  },
-  async updateStudent(id: string, payload: Partial<StudentApplication>, token: string) {
-    const response = await fetch(`/api/applications/${id}`, {
-      method: 'PUT',
-      headers: authHeaders(token),
-      body: JSON.stringify(payload),
-    })
-    return response.json() as Promise<StudentApplication>
-  },
-  async deleteStudent(id: string, token: string) {
-    await fetch(`/api/applications/${id}`, { method: 'DELETE', headers: authHeaders(token) })
   },
   async createResume(payload: ResumeDraft, resumeFile: File | null) {
     const body = new FormData()
@@ -355,7 +318,6 @@ function isQrAddress() {
 function App() {
   const [news, setNews] = useState<NewsItem[]>(fallbackNews)
   const [jobs, setJobs] = useState<JobOpening[]>([])
-  const [students, setStudents] = useState<StudentApplication[]>([])
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem('fedortsov-admin-token') || '')
   const [activeNews, setActiveNews] = useState<NewsItem | null>(null)
   const [viewedJob, setViewedJob] = useState<JobOpening | null>(null)
@@ -391,20 +353,6 @@ function App() {
       }
     })
   }, [])
-
-  useEffect(() => {
-    if (!adminToken) {
-      return
-    }
-    api
-      .listStudents(adminToken)
-      .then(setStudents)
-      .catch(() => {
-        localStorage.removeItem('fedortsov-admin-token')
-        setAdminToken('')
-        setStudents([])
-      })
-  }, [adminToken])
 
   useEffect(() => {
     const onLocationChange = () => {
@@ -489,10 +437,6 @@ function App() {
     setNews((items) => items.map((item) => (item.id === updated.id ? updated : item)))
   }
 
-  const refreshStudent = (updated: StudentApplication) => {
-    setStudents((items) => items.map((item) => (item.id === updated.id ? updated : item)))
-  }
-
   const refreshJob = (updated: JobOpening) => {
     setJobs((items) => items.map((item) => (item.id === updated.id ? updated : item)))
   }
@@ -523,11 +467,9 @@ function App() {
             token={adminToken}
             news={news}
             jobs={jobs}
-            students={students}
             onLogout={() => {
               localStorage.removeItem('fedortsov-admin-token')
               setAdminToken('')
-              setStudents([])
             }}
             onBack={() => {
               window.location.hash = ''
@@ -539,8 +481,6 @@ function App() {
             onJobCreated={(created) => setJobs((items) => [created, ...items])}
             onJobUpdated={refreshJob}
             onJobDeleted={(id) => setJobs((items) => items.filter((item) => item.id !== id))}
-            onStudentUpdated={refreshStudent}
-            onStudentDeleted={(id) => setStudents((items) => items.filter((item) => item.id !== id))}
           />
         ) : (
           <AdminLogin
@@ -855,6 +795,8 @@ function NewsSection({ news, onOpen }: { news: NewsItem[]; onOpen: (item: NewsIt
 }
 
 function Projects() {
+  const [isCompetencyOpen, setCompetencyOpen] = useState(false)
+
   return (
     <section className="section-shell" id="projects">
       <div className="section-title">
@@ -862,18 +804,6 @@ function Projects() {
         <h2>Мои проекты</h2>
       </div>
       <div className="project-grid">
-        <a
-          href="https://afedortsovbn-commits.github.io/marketer-competency-service/"
-          className="project-card"
-          aria-label="Подбор маркетологов"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <Users />
-          <h3>Подбор маркетологов</h3>
-          <p>Поиск и оценка маркетинговых специалистов под задачи вашего бизнеса.</p>
-          <span>Подробнее <ExternalLink size={16} /></span>
-        </a>
         <a
           href="https://afedortsovbn-commits.github.io/promo-mechanics-selector/"
           className="project-card"
@@ -886,6 +816,14 @@ function Projects() {
           <p>Разработка эффективных механик для продвижения товаров и услуг.</p>
           <span>Подробнее <ExternalLink size={16} /></span>
         </a>
+        <article className="project-card">
+          <Users />
+          <h3>Тестирование компетенций персонала</h3>
+          <p>Оценка компетенций кандидатов и сотрудников под задачи вашего бизнеса.</p>
+          <button className="project-details-button" type="button" onClick={() => setCompetencyOpen(true)}>
+            Подробнее <ExternalLink size={16} />
+          </button>
+        </article>
         <a
           href={publicAsset('/downloads/expense-control.apk')}
           className="project-card"
@@ -898,6 +836,43 @@ function Projects() {
           <span>Скачать APK <ExternalLink size={16} /></span>
         </a>
       </div>
+      {isCompetencyOpen && (
+        <Modal title="Тестирование компетенций персонала" onClose={() => setCompetencyOpen(false)}>
+          <div className="project-details">
+            <p>
+              «Оценка компетенций» — веб-сервис, который позволяет HR-специалисту за минуту создать
+              профессиональный опрос, отправить кандидату QR-код или ссылку, и в реальном времени
+              наблюдать за прохождением.
+            </p>
+            <h3>Ключевые возможности</h3>
+            <ul>
+              <li><strong>Гибкий конструктор опросов</strong> — выбирайте от 1 до 23 компетенций, комбинируя разделы под конкретную вакансию</li>
+              <li><strong>QR-код и ссылка</strong> — кандидат открывает тест за секунду, без регистрации и приложений</li>
+              <li><strong>Мониторинг в реальном времени</strong> — видите ответы кандидата по мере прохождения, прямо в своём кабинете</li>
+              <li><strong>Наглядные результаты</strong> — цветовая шкала от красного к зелёному мгновенно показывает сильные и слабые стороны</li>
+              <li><strong>Работает на любом устройстве</strong> — адаптирован для десктопа и мобильных; HR может проводить собеседование с телефона</li>
+              <li><strong>Перемешивание ответов</strong> — варианты ответов каждый раз в случайном порядке, что исключает списывание</li>
+              <li><strong>Таймер на вопрос</strong> — настраиваемое время ответа для контроля темпа прохождения</li>
+            </ul>
+            <h3>Для кого</h3>
+            <ul>
+              <li>HR-отделы компаний, которые набирают маркетологов, аналитиков, менеджеров</li>
+              <li>Руководители отделов маркетинга и аналитики, которые хотят быстро оценить уровень кандидата</li>
+              <li>HR-агентства, которым нужен инструмент для стандартизированной оценки соискателей</li>
+            </ul>
+            <h3>Начните прямо сейчас</h3>
+            <p>Сервис работает в браузере, не требует установки. Доступ по запросу.</p>
+            <a
+              className="primary-action project-service-link"
+              href="https://afedortsovbn-commits.github.io/marketer-competency-service/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Открыть сервис <ExternalLink size={18} />
+            </a>
+          </div>
+        </Modal>
+      )}
     </section>
   )
 }
@@ -912,7 +887,7 @@ function AdminLogin({ onBack, onLogin }: { onBack: () => void; onLogin: (passwor
       <section className="admin-login-card">
         <p className="eyebrow">Вход в админку</p>
         <h1>Введите пароль</h1>
-        <p>Доступ к заявкам студентов и управлению новостями закрыт паролем.</p>
+        <p>Доступ к управлению вакансиями и новостями закрыт паролем.</p>
         <form
           onSubmit={async (event) => {
             event.preventDefault()
@@ -955,7 +930,6 @@ function AdminPanel({
   token,
   news,
   jobs,
-  students,
   onLogout,
   onBack,
   onNewsCreated,
@@ -964,13 +938,10 @@ function AdminPanel({
   onJobCreated,
   onJobUpdated,
   onJobDeleted,
-  onStudentUpdated,
-  onStudentDeleted,
 }: {
   token: string
   news: NewsItem[]
   jobs: JobOpening[]
-  students: StudentApplication[]
   onLogout: () => void
   onBack: () => void
   onNewsCreated: (item: NewsItem) => void
@@ -979,28 +950,16 @@ function AdminPanel({
   onJobCreated: (item: JobOpening) => void
   onJobUpdated: (item: JobOpening) => void
   onJobDeleted: (id: string) => void
-  onStudentUpdated: (item: StudentApplication) => void
-  onStudentDeleted: (id: string) => void
 }) {
   const [newsDraft, setNewsDraft] = useState(emptyNews)
   const [jobDraft, setJobDraft] = useState(emptyJob)
   const [editingNews, setEditingNews] = useState<string | null>(null)
   const [editingJob, setEditingJob] = useState<string | null>(null)
-  const [editingStudent, setEditingStudent] = useState<string | null>(null)
-  const [studentDrafts, setStudentDrafts] = useState<Record<string, StudentApplication>>({})
+  const [expandedJob, setExpandedJob] = useState<string | null>(null)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordMessage, setPasswordMessage] = useState('')
-
-  const studentStats = useMemo(
-    () => ({
-      total: students.length,
-      agreed: students.filter((item) => item.status === 'Согласовано').length,
-      waiting: students.filter((item) => item.status === 'Ожидаю обратную связь').length,
-    }),
-    [students],
-  )
 
   const submitNews = async (event: FormEvent) => {
     event.preventDefault()
@@ -1035,19 +994,12 @@ function AdminPanel({
     }
   }
 
-  const updateStudentField = (student: StudentApplication, field: keyof StudentApplication, value: string) => {
-    setStudentDrafts((items) => ({
-      ...items,
-      [student.id]: { ...(items[student.id] || student), [field]: value },
-    }))
-  }
-
   return (
     <main className="admin-shell">
       <div className="admin-heading">
         <div>
           <p className="eyebrow">Административная часть</p>
-          <h1>Заявки, вакансии и новости</h1>
+          <h1>Вакансии и новости</h1>
         </div>
         <div className="admin-heading-actions">
           <button className="ghost-button" type="button" onClick={onBack}>
@@ -1060,25 +1012,11 @@ function AdminPanel({
       </div>
 
       <div className="admin-stats">
-        <span>Всего заявок: <strong>{studentStats.total}</strong></span>
         <span>Вакансий: <strong>{jobs.length}</strong></span>
-        <span>Согласовано: <strong>{studentStats.agreed}</strong></span>
-        <span>Ожидают ответа: <strong>{studentStats.waiting}</strong></span>
+        <span>Опубликовано: <strong>{jobs.filter((job) => job.status === 'active').length}</strong></span>
+        <span>Скрыто: <strong>{jobs.filter((job) => job.status === 'paused').length}</strong></span>
+        <span>Новостей: <strong>{news.length}</strong></span>
       </div>
-
-      <section className="admin-section">
-        <h2>Смена пароля</h2>
-        <form className="news-form password-form" onSubmit={submitPassword}>
-          <TextInput label="Текущий пароль" type="password" value={currentPassword} onChange={setCurrentPassword} required />
-          <TextInput label="Новый пароль" type="password" value={newPassword} onChange={setNewPassword} required />
-          <TextInput label="Повторите новый пароль" type="password" value={confirmPassword} onChange={setConfirmPassword} required />
-          {passwordMessage && <p className="password-message">{passwordMessage}</p>}
-          <button className="primary-action field-wide" type="submit">
-            <ShieldCheck size={18} />
-            Изменить пароль
-          </button>
-        </form>
-      </section>
 
       <section className="admin-section">
         <h2>Управление новостями</h2>
@@ -1096,7 +1034,7 @@ function AdminPanel({
           </button>
         </form>
 
-        <div className="admin-list">
+        <div className="admin-list admin-news-rail">
           {news.map((item) => (
             <article className="admin-card" key={item.id}>
               <img src={publicAsset(item.image)} alt="" />
@@ -1207,25 +1145,36 @@ function AdminPanel({
                       <h3>{job.title}</h3>
                       <p>{[job.city, job.workFormat, job.conditions, formatJobDates(job)].filter(Boolean).join(' · ')}</p>
                     </div>
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() => setExpandedJob(expandedJob === job.id ? null : job.id)}
+                    >
+                      {expandedJob === job.id ? 'Свернуть' : 'Подробнее'}
+                    </button>
                   </div>
-                  <dl className="student-details">
-                    <div>
-                      <dt>Условия работы</dt>
-                      <dd>{job.conditions || 'Не указано'}</dd>
-                    </div>
-                    <div>
-                      <dt>Задачи и обязанности</dt>
-                      <dd>{job.responsibilities || 'Не указано'}</dd>
-                    </div>
-                    <div>
-                      <dt>Требования</dt>
-                      <dd>{job.requirements || 'Не указано'}</dd>
-                    </div>
-                  </dl>
-                  <div className="row-actions">
-                    <button type="button" onClick={() => setEditingJob(job.id)}><Edit3 size={16} />Редактировать</button>
-                    <button type="button" onClick={async () => { await api.deleteJob(job.id, token); onJobDeleted(job.id) }}><Trash2 size={16} />Удалить</button>
-                  </div>
+                  {expandedJob === job.id && (
+                    <>
+                      <dl className="student-details admin-job-details">
+                        <div className="job-conditions">
+                          <dt>Условия работы</dt>
+                          <dd>{job.conditions || 'Не указано'}</dd>
+                        </div>
+                        <div>
+                          <dt>Задачи и обязанности</dt>
+                          <dd>{job.responsibilities || 'Не указано'}</dd>
+                        </div>
+                        <div>
+                          <dt>Требования</dt>
+                          <dd>{job.requirements || 'Не указано'}</dd>
+                        </div>
+                      </dl>
+                      <div className="row-actions">
+                        <button type="button" onClick={() => setEditingJob(job.id)}><Edit3 size={16} />Редактировать</button>
+                        <button type="button" onClick={async () => { await api.deleteJob(job.id, token); onJobDeleted(job.id) }}><Trash2 size={16} />Удалить</button>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </article>
@@ -1234,85 +1183,21 @@ function AdminPanel({
       </section>
 
       <section className="admin-section">
-        <h2>Заявки на практику</h2>
-        <div className="student-list">
-          {students.length === 0 && <p className="empty-state">Пока нет заявок. Новые анкеты появятся здесь автоматически.</p>}
-          {students.map((student) => {
-            const draft = studentDrafts[student.id] || student
-            const isEditing = editingStudent === student.id
-
-            return (
-              <article className="student-card" key={student.id}>
-                <div className="student-top">
-                  <div>
-                    <time>Заявка от {formatDate(student.createdAt)}</time>
-                    <h3>{student.fullName}</h3>
-                  </div>
-                  <select
-                    value={student.status}
-                    onChange={async (event) => onStudentUpdated(await api.updateStudent(student.id, { status: event.target.value as StudentStatus }, token))}
-                    aria-label="Статус заявки"
-                  >
-                    {statusOptions.map((status) => (
-                      <option key={status || 'empty'} value={status}>
-                        {status || 'Без статуса'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {isEditing ? (
-                  <div className="student-edit-grid">
-                    {studentFields.map((field) => (
-                      <TextInput
-                        key={field.key}
-                        label={field.label}
-                        value={String(draft[field.key])}
-                        onChange={(value) => updateStudentField(student, field.key, value)}
-                      />
-                    ))}
-                    <div className="row-actions field-wide">
-                      <button type="button" onClick={async () => { const updated = await api.updateStudent(student.id, draft, token); onStudentUpdated(updated); setEditingStudent(null) }}><Check size={16} />Сохранить</button>
-                      <button type="button" onClick={() => setEditingStudent(null)}><X size={16} />Отмена</button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <dl className="student-details">
-                      {studentFields.map((field) => (
-                        <div key={field.key}>
-                          <dt>{field.label}</dt>
-                          <dd>{String(student[field.key]) || 'Не указано'}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                    <div className="row-actions">
-                      <button type="button" onClick={() => setEditingStudent(student.id)}><Edit3 size={16} />Редактировать</button>
-                      <button type="button" onClick={async () => { await api.deleteStudent(student.id, token); onStudentDeleted(student.id) }}><Trash2 size={16} />Удалить</button>
-                    </div>
-                  </>
-                )}
-              </article>
-            )
-          })}
-        </div>
+        <h2>Смена пароля</h2>
+        <form className="news-form password-form" onSubmit={submitPassword}>
+          <TextInput label="Текущий пароль" type="password" value={currentPassword} onChange={setCurrentPassword} required />
+          <TextInput label="Новый пароль" type="password" value={newPassword} onChange={setNewPassword} required />
+          <TextInput label="Повторите новый пароль" type="password" value={confirmPassword} onChange={setConfirmPassword} required />
+          {passwordMessage && <p className="password-message">{passwordMessage}</p>}
+          <button className="primary-action field-wide" type="submit">
+            <ShieldCheck size={18} />
+            Изменить пароль
+          </button>
+        </form>
       </section>
     </main>
   )
 }
-
-const studentFields: { key: keyof StudentApplication; label: string }[] = [
-  { key: 'fullName', label: 'ФИО' },
-  { key: 'phone', label: 'Телефон' },
-  { key: 'telegram', label: 'Телеграм' },
-  { key: 'university', label: 'ВУЗ' },
-  { key: 'gradeAverage', label: 'Средний балл' },
-  { key: 'faculty', label: 'Факультет' },
-  { key: 'specialization', label: 'Специализация' },
-  { key: 'course', label: 'Курс' },
-  { key: 'enrollmentYear', label: 'Год поступления' },
-  { key: 'practiceDates', label: 'Даты практики' },
-]
 
 function NewsEditor({
   item,
