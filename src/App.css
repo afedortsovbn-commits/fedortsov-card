@@ -729,6 +729,9 @@ h1 {
 .admin-shell {
   display: grid;
   gap: 22px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .admin-login-shell {
@@ -804,6 +807,8 @@ h1 {
 
 .admin-section {
   padding: 18px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .password-form {
@@ -824,10 +829,15 @@ h1 {
 }
 
 .admin-news-rail {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   grid-auto-flow: column;
   grid-auto-columns: minmax(300px, 420px);
   overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: 12px;
+  overscroll-behavior-inline: contain;
   scroll-snap-type: x proximity;
 }
 
@@ -862,6 +872,12 @@ h1 {
 
 .admin-card p {
   color: var(--text-muted);
+}
+
+.admin-news-excerpt {
+  min-height: 4.5em;
+  margin-bottom: 0;
+  line-height: 1.5;
 }
 
 .news-status {
@@ -999,6 +1015,10 @@ h1 {
 }
 
 @media (max-width: 739px) {
+  .admin-news-rail {
+    grid-auto-columns: minmax(270px, calc(100vw - 72px));
+  }
+
   .topbar {
     align-items: flex-start;
     flex-direction: column;

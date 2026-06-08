@@ -1055,7 +1055,7 @@ function AdminPanel({
                     {item.status === 'pending' ? 'На согласовании' : 'Опубликовано'}
                   </span>
                   <h3>{item.title}</h3>
-                  <p>{item.text}</p>
+                  <p className="admin-news-excerpt">{getNewsExcerpt(item.text)}</p>
                   <div className="row-actions">
                     {item.status === 'pending' && (
                       <button type="button" onClick={async () => onNewsUpdated(await api.updateNews(item.id, { status: 'approved' }, token))}>
@@ -1324,6 +1324,11 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(date))
+}
+
+function getNewsExcerpt(text: string, wordLimit = 18) {
+  const words = text.trim().replace(/\s+/g, ' ').split(' ')
+  return words.length > wordLimit ? `${words.slice(0, wordLimit).join(' ')}...` : words.join(' ')
 }
 
 function formatJobDates(job: JobOpening) {
