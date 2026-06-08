@@ -244,7 +244,11 @@ const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    return response.json() as Promise<StudentApplication>
+    const result = await response.json() as { sent?: boolean; message?: string }
+    if (!response.ok) {
+      throw new Error(result.message || 'Не удалось отправить заявку')
+    }
+    return result
   },
   async updateStudent(id: string, payload: Partial<StudentApplication>, token: string) {
     const response = await fetch(`/api/applications/${id}`, {
@@ -297,6 +301,7 @@ function App() {
   const [activeNews, setActiveNews] = useState<NewsItem | null>(null)
   const [activeJob, setActiveJob] = useState<JobOpening | null>(null)
   const [isPracticeOpen, setPracticeOpen] = useState(false)
+  const [isPracticeSubmitting, setPracticeSubmitting] = useState(false)
   const [studentDraft, setStudentDraft] = useState(emptyStudent)
   const [resumeDraft, setResumeDraft] = useState(emptyResume)
   const [isQrOpen, setQrOpen] = useState(isQrAddress)
@@ -368,11 +373,17 @@ function App() {
 
   const submitPractice = async (event: FormEvent) => {
     event.preventDefault()
-    const saved = await api.createStudent(studentDraft)
-    setStudents((items) => [saved, ...items])
-    setStudentDraft(emptyStudent)
-    setPracticeOpen(false)
-    setNotice('Заявка отправлена. Александр свяжется с вами после просмотра анкеты.')
+    setPracticeSubmitting(true)
+    try {
+      await api.createStudent(studentDraft)
+      setStudentDraft(emptyStudent)
+      setPracticeOpen(false)
+      setNotice('Заявка отправлена в Telegram. Александр свяжется с вами после просмотра анкеты.')
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Не удалось отправить заявку. Попробуйте еще раз.')
+    } finally {
+      setPracticeSubmitting(false)
+    }
   }
 
   const submitResume = async (event: FormEvent) => {
@@ -491,9 +502,9 @@ function App() {
                 required
               />
             </label>
-            <button className="primary-action field-wide" type="submit">
+            <button className="primary-action field-wide" type="submit" disabled={isPracticeSubmitting}>
               <Send size={18} />
-              Отправить заявку
+              {isPracticeSubmitting ? 'Отправляю...' : 'Отправить заявку'}
             </button>
           </form>
         </Modal>

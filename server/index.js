@@ -58,7 +58,7 @@ function compactLines(lines) {
 
 async function notifyTelegram(text) {
   if (!telegramBotToken || !telegramChatId) {
-    return
+    return { ok: false, reason: 'not_configured' }
   }
 
   try {
@@ -73,10 +73,14 @@ async function notifyTelegram(text) {
     })
 
     if (!response.ok) {
-      console.warn(`Telegram notification failed: ${response.status}`)
+      const details = await response.text()
+      console.warn(`Telegram notification failed: ${response.status} ${details}`)
+      return { ok: false, reason: 'telegram_error' }
     }
+    return { ok: true }
   } catch (error) {
     console.warn('Telegram notification failed:', error)
+    return { ok: false, reason: 'network_error' }
   }
 }
 
@@ -218,7 +222,6 @@ app.get('/api/applications', requireAdmin, async (_request, response) => {
 })
 
 app.post('/api/applications', async (request, response) => {
-  const db = await readDb()
   const application = {
     id: createId('student'),
     createdAt: new Date().toISOString(),
@@ -234,9 +237,7 @@ app.post('/api/applications', async (request, response) => {
     enrollmentYear: request.body.enrollmentYear || '',
     practiceDates: request.body.practiceDates || '',
   }
-  db.applications.unshift(application)
-  await writeDb(db)
-  await notifyTelegram(compactLines([
+  const telegramResult = await notifyTelegram(compactLines([
     'Новая заявка на практику',
     `ФИО: ${application.fullName}`,
     `Телефон: ${application.phone}`,
@@ -249,7 +250,16 @@ app.post('/api/applications', async (request, response) => {
     `Год поступления: ${application.enrollmentYear}`,
     `Даты практики: ${application.practiceDates}`,
   ]))
-  response.status(201).json(application)
+
+  if (!telegramResult.ok) {
+    const message = telegramResult.reason === 'not_configured'
+      ? 'Отправка заявок в Telegram пока не настроена'
+      : 'Не удалось отправить заявку в Telegram. Попробуйте еще раз позже'
+    response.status(503).json({ message })
+    return
+  }
+
+  response.status(201).json({ sent: true })
 })
 
 app.post('/api/resumes', async (request, response) => {
