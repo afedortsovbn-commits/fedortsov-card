@@ -8,6 +8,7 @@ import {
   Clock,
   Edit3,
   ExternalLink,
+  Fuel,
   GraduationCap,
   Gift,
   Mail,
@@ -848,6 +849,18 @@ function Projects() {
           <h3>Контроль расходов</h3>
           <p>Мобильное приложение для Android, чтобы фиксировать расходы и держать личные финансы под контролем.</p>
           <span>Скачать APK <ExternalLink size={16} /></span>
+        </a>
+        <a
+          href="https://afedortsovbn-commits.github.io/Kassa/"
+          className="project-card"
+          aria-label="Эмулятор терминала самообслуживания АЗС"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Fuel />
+          <h3>Терминал самообслуживания АЗС</h3>
+          <p>Эмулятор терминала для проектирования и улучшения пользовательского опыта в системах самообслуживания АЗС.</p>
+          <span>Открыть эмулятор <ExternalLink size={16} /></span>
         </a>
         <a
           href="https://afedortsovbn-commits.github.io/Suvenir/"
