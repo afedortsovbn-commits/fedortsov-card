@@ -147,6 +147,7 @@ const practiceApiBase = import.meta.env.VITE_PRACTICE_API_URL?.replace(/\/$/, ''
   || (window.location.hostname.endsWith('github.io')
     ? 'https://fedortsov-card-api.afedortsovbn.workers.dev'
     : '')
+const cloudApi = (path: string) => `${practiceApiBase}${path}`
 
 const fallbackNews: NewsItem[] = [
   {
@@ -203,7 +204,7 @@ const api = {
   async login(password: string) {
     let response: Response
     try {
-      response = await fetch('/api/auth/login', {
+      response = await fetch(cloudApi('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
@@ -224,7 +225,7 @@ const api = {
     return response.json() as Promise<NewsItem[]>
   },
   async listJobs() {
-    const response = await fetch('/api/jobs')
+    const response = await fetch(cloudApi('/api/jobs'))
     return response.json() as Promise<JobOpening[]>
   },
   async createNews(payload: Omit<NewsItem, 'id'>, token: string) {
@@ -247,7 +248,7 @@ const api = {
     await fetch(`/api/news/${id}`, { method: 'DELETE', headers: authHeaders(token) })
   },
   async createJob(payload: JobDraft, token: string) {
-    const response = await fetch('/api/jobs', {
+    const response = await fetch(cloudApi('/api/jobs'), {
       method: 'POST',
       headers: authHeaders(token),
       body: JSON.stringify(payload),
@@ -255,7 +256,7 @@ const api = {
     return response.json() as Promise<JobOpening>
   },
   async updateJob(id: string, payload: Partial<JobOpening>, token: string) {
-    const response = await fetch(`/api/jobs/${id}`, {
+    const response = await fetch(cloudApi(`/api/jobs/${id}`), {
       method: 'PUT',
       headers: authHeaders(token),
       body: JSON.stringify(payload),
@@ -263,10 +264,10 @@ const api = {
     return response.json() as Promise<JobOpening>
   },
   async deleteJob(id: string, token: string) {
-    await fetch(`/api/jobs/${id}`, { method: 'DELETE', headers: authHeaders(token) })
+    await fetch(cloudApi(`/api/jobs/${id}`), { method: 'DELETE', headers: authHeaders(token) })
   },
   async listStudents(token: string) {
-    const response = await fetch('/api/applications', { headers: authHeaders(token) })
+    const response = await fetch(cloudApi('/api/applications'), { headers: authHeaders(token) })
     if (!response.ok) {
       throw new Error('Нужно войти в админку')
     }
@@ -296,12 +297,16 @@ const api = {
     await fetch(`/api/applications/${id}`, { method: 'DELETE', headers: authHeaders(token) })
   },
   async createResume(payload: ResumeDraft) {
-    const response = await fetch('/api/resumes', {
+    const response = await fetch(cloudApi('/api/resumes'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    return response.json()
+    const result = await response.json() as { sent?: boolean; message?: string }
+    if (!response.ok) {
+      throw new Error(result.message || 'Не удалось отправить отклик')
+    }
+    return result
   },
 }
 
@@ -348,9 +353,13 @@ function App() {
 
   useEffect(() => {
     const load = async () => {
-      const [newsItems, jobItems] = await Promise.all([api.listNews(), api.listJobs()])
-      setNews(newsItems)
-      setJobs(jobItems)
+      const [newsResult, jobsResult] = await Promise.allSettled([api.listNews(), api.listJobs()])
+      if (newsResult.status === 'fulfilled') {
+        setNews(newsResult.value)
+      }
+      if (jobsResult.status === 'fulfilled') {
+        setJobs(jobsResult.value)
+      }
     }
 
     load().catch(() => {
