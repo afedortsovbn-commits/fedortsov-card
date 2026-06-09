@@ -1284,7 +1284,25 @@ function NewsEditor({
     <form className="news-form compact" onSubmit={(event) => { event.preventDefault(); onSave(draft) }}>
       <TextInput label="Заголовок" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />
       <TextInput label="Дата" type="date" value={draft.date.slice(0, 10)} onChange={(date) => setDraft({ ...draft, date })} />
-      <TextInput label="Картинка" value={draft.image} onChange={(image) => setDraft({ ...draft, image })} />
+      <label className="field field-wide">
+        <span>Шаблон фоновой картинки</span>
+        <div className="news-template-grid">
+          {newsImageTemplates.map((template, index) => (
+            <button
+              className={draft.image === template ? 'is-selected' : ''}
+              type="button"
+              key={template}
+              onClick={() => setDraft({ ...draft, image: template })}
+              aria-label={`Выбрать шаблон ${index + 1}`}
+              title={`Шаблон ${index + 1}`}
+            >
+              <img src={publicAsset(template)} alt="" />
+              <span>{index + 1}</span>
+            </button>
+          ))}
+        </div>
+      </label>
+      <TextInput label="Свой URL или путь картинки" value={draft.image} onChange={(image) => setDraft({ ...draft, image })} />
       <label className="field field-wide">
         <span>Текст</span>
         <textarea value={draft.text} onChange={(event) => setDraft({ ...draft, text: event.target.value })} />
