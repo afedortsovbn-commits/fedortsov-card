@@ -106,6 +106,19 @@ const emptyNews: Omit<NewsItem, 'id'> = {
   status: 'pending',
 }
 
+const newsImageTemplates = [
+  '/images/news-ai.svg',
+  '/images/news-data.svg',
+  '/images/news-social.svg',
+  '/images/news-strategy.svg',
+  '/images/news-commerce.svg',
+  '/images/news-content.svg',
+  '/images/news-email.svg',
+  '/images/news-brand.svg',
+  '/images/news-events.svg',
+  '/images/news-customer.svg',
+]
+
 const emptyJob: JobDraft = {
   title: '',
   startDate: new Date().toLocaleDateString('en-CA'),
@@ -168,21 +181,21 @@ const fallbackNews: NewsItem[] = [
     id: 'news-1',
     title: 'Нейросети в маркетинге: главные тренды года',
     date: '2026-05-18',
-    image: '/images/news-ai.svg',
+    image: '/images/news-strategy.svg',
     text: 'Маркетинговые команды все чаще используют нейросети не как отдельный инструмент, а как часть ежедневного процесса: от анализа аудитории до подготовки креативов и быстрых гипотез. Главный фокус смещается к качеству промптов, проверке фактов и прозрачной редактуре результата.',
   },
   {
     id: 'news-2',
     title: 'Персонализация: как данные помогают продавать больше',
     date: '2026-05-17',
-    image: '/images/news-data.svg',
+    image: '/images/news-commerce.svg',
     text: 'Бренды возвращаются к прагматичной персонализации: сегментируют аудиторию по поведению, уточняют офферы и тестируют коммуникации небольшими циклами. Побеждают не самые сложные системы, а команды, которые умеют быстро превращать данные в понятные действия.',
   },
   {
     id: 'news-3',
     title: 'Новые алгоритмы соцсетей: что важно знать маркетологу',
     date: '2026-05-16',
-    image: '/images/news-social.svg',
+    image: '/images/news-content.svg',
     text: 'Социальные платформы продолжают усиливать роль удержания внимания, сохранений и обсуждений. Для маркетологов это означает больший спрос на контент с практической ценностью, ясной позицией и форматом, который удобно пересылать коллегам.',
   },
 ]
@@ -1002,7 +1015,7 @@ function AdminPanel({
 
   const submitNews = async (event: FormEvent) => {
     event.preventDefault()
-    const image = newsDraft.image || '/images/news-ai.svg'
+    const image = newsDraft.image || newsImageTemplates.find((template) => !news.some((item) => item.image === template)) || newsImageTemplates[0]
     const created = await api.createNews({ ...newsDraft, image, status: 'pending' }, token)
     onNewsCreated(created)
     setNewsDraft(emptyNews)
@@ -1062,7 +1075,25 @@ function AdminPanel({
         <form className="news-form" onSubmit={submitNews}>
           <TextInput label="Заголовок" value={newsDraft.title} onChange={(title) => setNewsDraft({ ...newsDraft, title })} required />
           <TextInput label="Дата" type="date" value={newsDraft.date} onChange={(date) => setNewsDraft({ ...newsDraft, date })} required />
-          <TextInput label="URL или путь картинки" value={newsDraft.image} onChange={(image) => setNewsDraft({ ...newsDraft, image })} placeholder="/images/news-ai.svg" />
+          <label className="field field-wide">
+            <span>Шаблон фоновой картинки</span>
+            <div className="news-template-grid">
+              {newsImageTemplates.map((template, index) => (
+                <button
+                  className={newsDraft.image === template ? 'is-selected' : ''}
+                  type="button"
+                  key={template}
+                  onClick={() => setNewsDraft({ ...newsDraft, image: template })}
+                  aria-label={`Выбрать шаблон ${index + 1}`}
+                  title={`Шаблон ${index + 1}`}
+                >
+                  <img src={publicAsset(template)} alt="" />
+                  <span>{index + 1}</span>
+                </button>
+              ))}
+            </div>
+          </label>
+          <TextInput label="Свой URL или путь картинки (необязательно)" value={newsDraft.image} onChange={(image) => setNewsDraft({ ...newsDraft, image })} placeholder="/images/news-ai.svg" />
           <label className="field field-wide">
             <span>Текст новости</span>
             <textarea value={newsDraft.text} onChange={(event) => setNewsDraft({ ...newsDraft, text: event.target.value })} required />
