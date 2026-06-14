@@ -85,6 +85,11 @@ type ResumeDraft = {
   comment: string
 }
 
+type NoticeState = {
+  message: string
+  type: 'success' | 'error'
+}
+
 const emptyStudent: StudentDraft = {
   fullName: '',
   phone: '',
@@ -345,12 +350,16 @@ function App() {
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [isResumeSubmitting, setResumeSubmitting] = useState(false)
   const [isQrOpen, setQrOpen] = useState(isQrAddress)
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState<NoticeState | null>(null)
   const [route, setRoute] = useState(window.location.hash === '#admin' ? 'admin' : 'site')
 
   const isAdmin = route === 'admin'
   const publicNews = news.filter((item) => item.status !== 'pending')
   const publicJobs = jobs.filter((item) => item.status !== 'paused')
+
+  const showNotice = (message: string, type: NoticeState['type'] = 'error') => {
+    setNotice({ message, type })
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -365,10 +374,18 @@ function App() {
 
     load().catch(() => {
       if (!isStaticPagesHost()) {
-        setNotice('Не удалось загрузить данные. Проверьте, запущен ли сервер.')
+        showNotice('Не удалось загрузить данные. Проверьте, запущен ли сервер.')
       }
     })
   }, [])
+
+  useEffect(() => {
+    if (notice?.type !== 'success') {
+      return
+    }
+    const timer = window.setTimeout(() => setNotice(null), 3000)
+    return () => window.clearTimeout(timer)
+  }, [notice])
 
   useEffect(() => {
     const onLocationChange = () => {
@@ -408,9 +425,9 @@ function App() {
       await api.createStudent(studentDraft)
       setStudentDraft(emptyStudent)
       setPracticeOpen(false)
-      setNotice('Заявка отправлена в Telegram. Александр свяжется с вами после просмотра анкеты.')
+      showNotice('Заявка отправлена в Telegram. Александр свяжется с вами после просмотра анкеты.', 'success')
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Не удалось отправить заявку. Попробуйте еще раз.')
+      showNotice(error instanceof Error ? error.message : 'Не удалось отправить заявку. Попробуйте еще раз.')
     } finally {
       setPracticeSubmitting(false)
     }
@@ -424,11 +441,11 @@ function App() {
     if (resumeFile) {
       const extension = resumeFile.name.toLowerCase().split('.').pop()
       if (!['pdf', 'doc', 'docx'].includes(extension || '')) {
-        setNotice('Файл резюме должен быть в формате PDF, DOC или DOCX')
+        showNotice('Файл резюме должен быть в формате PDF, DOC или DOCX')
         return
       }
       if (resumeFile.size > 10 * 1024 * 1024) {
-        setNotice('Размер файла резюме не должен превышать 10 МБ')
+        showNotice('Размер файла резюме не должен превышать 10 МБ')
         return
       }
     }
@@ -441,9 +458,9 @@ function App() {
       setResumeDraft(emptyResume)
       setResumeFile(null)
       setActiveJob(null)
-      setNotice('Отклик успешно отправлен в Telegram.')
+      showNotice('Отклик успешно отправлен в Telegram.', 'success')
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Не удалось отправить отклик')
+      showNotice(error instanceof Error ? error.message : 'Не удалось отправить отклик')
     } finally {
       setResumeSubmitting(false)
     }
@@ -469,9 +486,9 @@ function App() {
       </header>
 
       {notice && (
-        <div className="toast" role="status">
-          {notice}
-          <button type="button" onClick={() => setNotice('')} aria-label="Закрыть уведомление">
+        <div className={`toast is-${notice.type}`} role="status">
+          {notice.message}
+          <button type="button" onClick={() => setNotice(null)} aria-label="Закрыть уведомление">
             <X size={16} />
           </button>
         </div>
@@ -527,7 +544,7 @@ function App() {
 
       {isPracticeOpen && (
         <Modal title="Запись на прохождение практики" onClose={() => setPracticeOpen(false)}>
-          <form className="practice-form" onSubmit={submitPractice}>
+          <form className="practice-form" onSubmit={submitPractice} onInvalidCapture={handleInvalidForm} onInput={clearInvalidField}>
             <TextInput label="ФИО полностью" value={studentDraft.fullName} onChange={(fullName) => setStudentDraft({ ...studentDraft, fullName })} required />
             <TextInput label="Телефон" value={studentDraft.phone} onChange={(phone) => setStudentDraft({ ...studentDraft, phone })} required />
             <TextInput label="Телеграм" value={studentDraft.telegram} onChange={(telegram) => setStudentDraft({ ...studentDraft, telegram })} required />
@@ -538,7 +555,7 @@ function App() {
             <TextInput label="Курс" value={studentDraft.course} onChange={(course) => setStudentDraft({ ...studentDraft, course })} required />
             <TextInput label="Год поступления" value={studentDraft.enrollmentYear} onChange={(enrollmentYear) => setStudentDraft({ ...studentDraft, enrollmentYear })} required />
             <label className="field field-wide">
-              <span>Даты практики</span>
+              <span>Даты практики <RequiredMark /></span>
               <textarea
                 value={studentDraft.practiceDates}
                 onChange={(event) => setStudentDraft({ ...studentDraft, practiceDates: event.target.value })}
@@ -607,14 +624,14 @@ function App() {
 
       {activeJob && (
         <Modal title="Отправить резюме" onClose={() => setActiveJob(null)}>
-          <form className="practice-form" onSubmit={submitResume}>
+          <form className="practice-form" onSubmit={submitResume} onInvalidCapture={handleInvalidForm} onInput={clearInvalidField}>
             <div className="field field-wide">
               <span>Вакансия</span>
               <strong>{activeJob.title}</strong>
             </div>
             <TextInput label="ФИО" value={resumeDraft.fullName} onChange={(fullName) => setResumeDraft({ ...resumeDraft, fullName })} required />
             <TextInput label="Телефон" value={resumeDraft.phone} onChange={(phone) => setResumeDraft({ ...resumeDraft, phone })} required />
-            <TextInput label="Телеграм" value={resumeDraft.telegram} onChange={(telegram) => setResumeDraft({ ...resumeDraft, telegram })} required />
+            <TextInput label="Телеграм" value={resumeDraft.telegram} onChange={(telegram) => setResumeDraft({ ...resumeDraft, telegram })} />
             <TextInput label="E-mail" type="email" value={resumeDraft.email} onChange={(email) => setResumeDraft({ ...resumeDraft, email })} />
             <TextInput label="Ссылка на резюме" value={resumeDraft.resumeLink} onChange={(resumeLink) => setResumeDraft({ ...resumeDraft, resumeLink })} placeholder="Google Drive, hh, LinkedIn или другой URL" />
             <label className="field field-wide file-field">
@@ -745,13 +762,28 @@ function Contacts() {
 }
 
 function BrandMark({ kind }: { kind: 'in' | 'ig' | 'threads' | 'tenchat' }) {
-  const label = {
-    in: 'in',
-    ig: '◎',
-    threads: '@',
-    tenchat: 'T',
-  }[kind]
-
+  if (kind === 'in') {
+    return (
+      <span className="brand-mark brand-mark-in" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <path d="M8 10v7M8 7.5v.05M12 17v-7M12 13.2c0-2 1.1-3.4 3-3.4 1.8 0 3 1.2 3 3.6V17" />
+        </svg>
+      </span>
+    )
+  }
+  if (kind === 'ig') {
+    return (
+      <span className="brand-mark brand-mark-ig" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <rect x="4" y="4" width="16" height="16" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle cx="17" cy="7" r="1" />
+        </svg>
+      </span>
+    )
+  }
+  const label = kind === 'threads' ? '@' : 'T'
   return <span className={`brand-mark brand-mark-${kind}`} aria-hidden="true">{label}</span>
 }
 
@@ -1388,10 +1420,40 @@ function TextInput({
 }) {
   return (
     <label className="field">
-      <span>{label}</span>
+      <span>{label} {required && <RequiredMark />}</span>
       <input type={type} value={value} onChange={(event) => onChange(event.target.value)} required={required} placeholder={placeholder} />
     </label>
   )
+}
+
+function RequiredMark() {
+  return <b className="required-mark" aria-hidden="true">*</b>
+}
+
+function handleInvalidForm(event: FormEvent<HTMLFormElement>) {
+  const control = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  if (!('validity' in control)) {
+    return
+  }
+  event.preventDefault()
+  control.closest('.field')?.classList.add('is-invalid')
+  const form = event.currentTarget
+  if (form.dataset.invalidFocused) {
+    return
+  }
+  form.dataset.invalidFocused = 'true'
+  control.focus({ preventScroll: true })
+  control.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  window.setTimeout(() => {
+    delete form.dataset.invalidFocused
+  }, 0)
+}
+
+function clearInvalidField(event: FormEvent<HTMLFormElement>) {
+  const control = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  if ('validity' in control && control.validity.valid) {
+    control.closest('.field')?.classList.remove('is-invalid')
+  }
 }
 
 function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {

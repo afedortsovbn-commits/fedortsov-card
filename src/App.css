@@ -221,16 +221,26 @@ h1 {
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   color: var(--gold);
   font-size: 14px;
   font-weight: 900;
   line-height: 1;
 }
 
+.brand-mark svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .brand-mark-in {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .brand-mark-ig {
@@ -586,6 +596,24 @@ h1 {
   font: inherit;
 }
 
+.required-mark {
+  color: #ff6b5f;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.field.is-invalid span {
+  color: #ffb0a8;
+}
+
+.field.is-invalid input,
+.field.is-invalid textarea,
+.field.is-invalid select {
+  border-color: #ff6b5f;
+  background: rgba(255, 107, 95, 0.1);
+  box-shadow: 0 0 0 3px rgba(255, 107, 95, 0.15);
+}
+
 .checkbox-field {
   display: flex;
   align-items: center;
@@ -672,6 +700,33 @@ h1 {
   color: var(--text-strong);
   background: #14171c;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
+}
+
+.toast.is-success {
+  border-color: rgba(64, 190, 118, 0.55);
+  color: #ecfff2;
+  background: rgba(17, 109, 56, 0.96);
+  animation: toast-success-life 3s ease forwards;
+}
+
+.toast.is-error {
+  border-color: rgba(255, 130, 110, 0.45);
+  background: rgba(54, 18, 17, 0.96);
+}
+
+.toast.is-success button {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+@keyframes toast-success-life {
+  0%, 82% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 }
 
 .share-actions {
