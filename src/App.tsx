@@ -238,7 +238,7 @@ const api = {
     return result
   },
   async listNews() {
-    const response = await fetch('/api/news')
+    const response = await fetch(cloudApi('/api/news'))
     return response.json() as Promise<NewsItem[]>
   },
   async listJobs() {
@@ -247,7 +247,7 @@ const api = {
     return jobs.map((job) => ({ ...job, conditions: job.conditions || '' }))
   },
   async createNews(payload: Omit<NewsItem, 'id'>, token: string) {
-    const response = await fetch('/api/news', {
+    const response = await fetch(cloudApi('/api/news'), {
       method: 'POST',
       headers: authHeaders(token),
       body: JSON.stringify(payload),
@@ -255,7 +255,7 @@ const api = {
     return response.json() as Promise<NewsItem>
   },
   async updateNews(id: string, payload: Partial<NewsItem>, token: string) {
-    const response = await fetch(`/api/news/${id}`, {
+    const response = await fetch(cloudApi(`/api/news/${id}`), {
       method: 'PUT',
       headers: authHeaders(token),
       body: JSON.stringify(payload),
@@ -263,7 +263,7 @@ const api = {
     return response.json() as Promise<NewsItem>
   },
   async deleteNews(id: string, token: string) {
-    await fetch(`/api/news/${id}`, { method: 'DELETE', headers: authHeaders(token) })
+    await fetch(cloudApi(`/api/news/${id}`), { method: 'DELETE', headers: authHeaders(token) })
   },
   async createJob(payload: JobDraft, token: string) {
     const response = await fetch(cloudApi('/api/jobs'), {

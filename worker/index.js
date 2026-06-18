@@ -5,6 +5,7 @@ const allowedOrigins = new Set([
 ])
 
 const jobsKey = 'jobs'
+const newsKey = 'news'
 const adminPasswordKey = 'admin-password'
 const tokenLifetimeMs = 12 * 60 * 60 * 1000
 const maxResumeSize = 10 * 1024 * 1024
@@ -18,6 +19,65 @@ const applicationRequiredFields = [
   ['course', 'Курс'],
   ['enrollmentYear', 'Год поступления'],
   ['practiceDates', 'Даты практики'],
+]
+
+// Встроенный набор новостей, который отдаётся, пока KV `news` пуст,
+// чтобы визитка не оказалась без контента до первой записи сервиса/админки.
+const defaultNews = [
+  {
+    id: 'news-ai-loyalty-2026',
+    title: 'ИИ становится новым посредником между брендом и покупателем',
+    date: '2026-06-08',
+    image: '/images/news-ai.svg',
+    text: 'Покупатели всё чаще доверяют нейросетям не только поиск информации, но и выбор товаров, сравнение предложений и формирование списка предпочтительных брендов. Исследование агентства Gale показывает: более половины потребителей готовы пропускать коммуникацию компаний через ИИ-помощников.\n\nДля маркетинга это означает серьёзный сдвиг. Красивой рекламной кампании уже недостаточно — бренд должен быть понятен алгоритмам, иметь качественные данные о продуктах и сохранять прямую связь с аудиторией. Особую ценность приобретают собственные базы клиентов, сильные сообщества и последовательное присутствие во всех цифровых каналах.\n\nВ новой модели лояльность формируется не только между человеком и брендом. На решение всё чаще влияет цифровой помощник, который отбирает варианты и объясняет, почему один из них подходит лучше другого.',
+    sourceUrl: 'https://www.marketingdive.com/news/why-marketers-must-rethink-loyalty-as-ai-reshapes-consumer-connections/822003/',
+    sourceName: 'Marketing Dive',
+    status: 'approved',
+  },
+  {
+    id: 'news-meta-ai-ads-2026',
+    title: 'Meta усиливает маркировку рекламы, созданной с помощью ИИ',
+    date: '2026-06-01',
+    image: '/images/news-social.svg',
+    text: 'Meta расширяет правила прозрачности для рекламы, созданной или существенно изменённой генеративным ИИ. Теперь информация будет учитывать не только инструменты самой Meta, но и сторонние нейросети, использованные рекламодателями.\n\nВ меню каждого объявления постепенно появляется единый раздел «Об этой рекламе». В нём пользователь сможет увидеть сведения о причинах показа и применении искусственного интеллекта при подготовке материалов.\n\nДля брендов вывод простой: использование ИИ в креативах становится обычной практикой, но скрывать его будет всё сложнее. Маркетологам стоит заранее выстроить правила маркировки, проверки изображений и сохранения доверия аудитории.',
+    sourceUrl: 'https://about.fb.com/news/2025/02/gen-ai-transparency-metas-ads-products/',
+    sourceName: 'Meta',
+    status: 'approved',
+  },
+  {
+    id: 'news-google-ai-search-ads-2026',
+    title: 'Google переносит рекламу в диалоговый AI-поиск',
+    date: '2026-05-25',
+    image: '/images/news-data.svg',
+    text: 'На Google Marketing Live компания представила новое поколение рекламы для поиска с искусственным интеллектом. Объявления становятся частью диалога: Gemini сможет подбирать коммерческие предложения, объяснять преимущества товаров и показывать релевантные варианты прямо во время обсуждения запроса.\n\nСреди новых форматов — Conversational Discovery ads и Highlighted Answers. Они рассчитаны на ситуации, когда человек ещё не выбрал конкретный товар и уточняет потребности в разговорной форме. Google также развивает специальные предложения и упрощённую покупку непосредственно из поискового интерфейса.\n\nДля рекламодателей это усиливает значение качественных товарных данных, Performance Max, AI Max и понятного позиционирования бренда. Конкурировать предстоит уже не только за поисковую строку, но и за место в ответе нейросети.',
+    sourceUrl: 'https://blog.google/products/ads-commerce/google-marketing-live-search-ads',
+    sourceName: 'Google',
+    status: 'approved',
+  },
+  {
+    id: 'news-1',
+    title: 'Нейросети в маркетинге: главные тренды года',
+    date: '2026-05-18',
+    image: '/images/news-strategy.svg',
+    text: 'Маркетинговые команды все чаще используют нейросети не как отдельный инструмент, а как часть ежедневного процесса: от анализа аудитории до подготовки креативов и быстрых гипотез. Главный фокус смещается к качеству промптов, проверке фактов и прозрачной редактуре результата.',
+    status: 'approved',
+  },
+  {
+    id: 'news-2',
+    title: 'Персонализация: как данные помогают продавать больше',
+    date: '2026-05-17',
+    image: '/images/news-commerce.svg',
+    text: 'Бренды возвращаются к прагматичной персонализации: сегментируют аудиторию по поведению, уточняют офферы и тестируют коммуникации небольшими циклами. Побеждают не самые сложные системы, а команды, которые умеют быстро превращать данные в понятные действия.',
+    status: 'approved',
+  },
+  {
+    id: 'news-3',
+    title: 'Новые алгоритмы соцсетей: что важно знать маркетологу',
+    date: '2026-05-16',
+    image: '/images/news-content.svg',
+    text: 'Социальные платформы продолжают усиливать роль удержания внимания, сохранений и обсуждений. Для маркетологов это означает больший спрос на контент с практической ценностью, ясной позицией и форматом, который удобно пересылать коллегам.',
+    status: 'approved',
+  },
 ]
 
 function corsHeaders(origin) {
@@ -136,6 +196,38 @@ async function readJobs(env) {
 
 async function writeJobs(env, jobs) {
   await env.JOBS.put(jobsKey, JSON.stringify(jobs))
+}
+
+async function readNews(env) {
+  const stored = await env.JOBS.get(newsKey, 'json')
+  if (Array.isArray(stored) && stored.length) {
+    return stored.map((item) => ({ status: 'approved', ...item }))
+  }
+  return defaultNews
+}
+
+async function writeNews(env, news) {
+  await env.JOBS.put(newsKey, JSON.stringify(news))
+}
+
+function normalizeNews(data, existing = {}) {
+  return {
+    ...existing,
+    title: clean(data.title, 200),
+    date: clean(data.date, 30) || existing.date || new Date().toISOString(),
+    image: clean(data.image, 500) || existing.image || '/images/news-ai.svg',
+    text: clean(data.text, 6000),
+    sourceUrl: clean(data.sourceUrl, 500),
+    sourceName: clean(data.sourceName, 150),
+    status: data.status === 'approved' ? 'approved' : (existing.status || 'pending'),
+  }
+}
+
+function validateNews(item) {
+  const missing = []
+  if (!item.title) missing.push('заголовок')
+  if (!item.text) missing.push('текст')
+  return missing
 }
 
 function normalizeJob(data, existing = {}) {
@@ -306,6 +398,62 @@ export default {
       }
       await savePassword(newPassword, env)
       return jsonResponse({ changed: true }, 200, origin)
+    }
+
+    if (url.pathname === '/api/news') {
+      if (request.method === 'GET') {
+        const news = await readNews(env)
+        return jsonResponse(
+          [...news].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)),
+          200,
+          origin,
+        )
+      }
+
+      const unauthorized = await requireAdmin(request, env, origin)
+      if (unauthorized) return unauthorized
+
+      if (request.method === 'POST') {
+        const item = {
+          id: `news-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
+          ...normalizeNews(await readJson(request)),
+        }
+        const missing = validateNews(item)
+        if (missing.length) {
+          return jsonResponse({ message: `Заполните поля: ${missing.join(', ')}` }, 400, origin)
+        }
+        const news = await readNews(env)
+        news.unshift(item)
+        await writeNews(env, news)
+        return jsonResponse(item, 201, origin)
+      }
+    }
+
+    const newsMatch = url.pathname.match(/^\/api\/news\/([^/]+)$/)
+    if (newsMatch && (request.method === 'PUT' || request.method === 'DELETE')) {
+      const unauthorized = await requireAdmin(request, env, origin)
+      if (unauthorized) return unauthorized
+
+      const news = await readNews(env)
+      const index = news.findIndex((item) => item.id === newsMatch[1])
+      if (index === -1) {
+        return jsonResponse({ message: 'Новость не найдена' }, 404, origin)
+      }
+
+      if (request.method === 'DELETE') {
+        news.splice(index, 1)
+        await writeNews(env, news)
+        return new Response(null, { status: 204, headers: corsHeaders(origin) })
+      }
+
+      const updated = { ...normalizeNews(await readJson(request), news[index]), id: news[index].id }
+      const missing = validateNews(updated)
+      if (missing.length) {
+        return jsonResponse({ message: `Заполните поля: ${missing.join(', ')}` }, 400, origin)
+      }
+      news[index] = updated
+      await writeNews(env, news)
+      return jsonResponse(updated, 200, origin)
     }
 
     if (url.pathname === '/api/jobs') {
