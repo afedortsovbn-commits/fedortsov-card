@@ -1,6 +1,6 @@
 import type { FormEvent, ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Award,
   BriefcaseBusiness,
@@ -817,13 +817,21 @@ function JobsSection({ jobs, onOpen }: { jobs: JobOpening[]; onOpen: (job: JobOp
 }
 
 function NewsSection({ news, onOpen }: { news: NewsItem[]; onOpen: (item: NewsItem) => void }) {
+  const railRef = useRef<HTMLDivElement>(null)
+  // Новости приходят в два этапа (fallback → загруженные), и свежая вставляется
+  // слева. Браузерный scroll-anchoring сдвигает ленту вправо и прячет её —
+  // принудительно возвращаем ленту в крайнее левое положение при обновлении.
+  useEffect(() => {
+    railRef.current?.scrollTo({ left: 0 })
+  }, [news])
+
   return (
     <section className="section-shell" id="news">
       <div className="section-title">
         <Newspaper />
         <h2>Маркетинговые новости</h2>
       </div>
-      <div className="news-rail" aria-label="Список маркетинговых новостей">
+      <div className="news-rail" ref={railRef} aria-label="Список маркетинговых новостей">
         {news.map((item) => (
           <article className="news-card" key={item.id}>
             <img src={publicAsset(item.image)} alt="" />

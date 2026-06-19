@@ -301,6 +301,8 @@ h1 {
   overflow-x: auto;
   padding: 0 0 12px;
   scroll-snap-type: x proximity;
+  /* Не даём браузеру сдвигать ленту вправо при вставке свежей новости слева. */
+  overflow-anchor: none;
 }
 
 .news-card {
