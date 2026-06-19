@@ -3,6 +3,7 @@
 // канал, VK и т.п.) без изменения остального сервиса.
 
 import { readNews, writeNews, putImage } from './store.js'
+import { compressImage } from './compress.js'
 
 // База API воркера — нужна, чтобы картинка грузилась на визитке (другой домен).
 const WORKER_BASE = 'https://fedortsov-card-api.afedortsovbn.workers.dev'
@@ -23,7 +24,15 @@ async function publishToVisitka(env, draft, options = {}) {
   const id = `news-${Date.now()}-${uuid()}`
   let image = '/images/news-ai.svg'
   if (draft.imageBase64) {
-    await putImage(env, id, base64ToArrayBuffer(draft.imageBase64), 'image/jpeg')
+    const raw = base64ToArrayBuffer(draft.imageBase64)
+    let bytes
+    try {
+      bytes = compressImage(raw)
+    } catch (error) {
+      console.warn('compressImage:', error.message)
+      bytes = raw
+    }
+    await putImage(env, id, bytes, 'image/jpeg')
     const base = options.apiBase || env.PUBLIC_API_BASE || WORKER_BASE
     image = `${base}/api/news/image/${id}`
   }

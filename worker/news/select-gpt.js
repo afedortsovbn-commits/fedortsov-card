@@ -37,7 +37,9 @@ function buildUser(items) {
 
 // Главная функция. Возвращает кандидатов с полями score/gptReason, по убыванию.
 export async function gptSelect(env, candidates, options = {}) {
-  const { limit = 9, model = 'yandexgpt', shortlist = 25 } = options
+  // Отбор-ранжирование 25 заголовков — посильная задача для Lite (×5 дешевле
+  // Pro). Дорогой Pro оставляем на финальный рерайт (rewrite.js).
+  const { limit = 9, model = 'yandexgpt-lite', shortlist = 25 } = options
   if (!candidates.length) return []
 
   // 1. Дешёвый предотбор эвристикой — не шлём в модель весь поток.
