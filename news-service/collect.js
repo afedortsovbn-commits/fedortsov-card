@@ -3,6 +3,7 @@
 // Node (для локальных тестов), и в Worker (общий global fetch).
 
 import { parseFeed } from './rss.js'
+import { fetchTelegramChannel } from './telegram-source.js'
 
 // FNV-1a 32-бит → стабильный hex-id для дедупликации между запусками.
 function hashId(text) {
@@ -35,7 +36,12 @@ function withinDays(iso, days, now) {
   return now - ms <= days * 24 * 60 * 60 * 1000
 }
 
-async function fetchFeed(source, fetchImpl, timeoutMs) {
+// Загрузка одного источника с учётом его типа (rss | telegram).
+async function fetchSource(source, fetchImpl, timeoutMs) {
+  if (source.type === 'telegram') {
+    const { items, error } = await fetchTelegramChannel(source.username, { fetchImpl, timeoutMs })
+    return { source, items, error }
+  }
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -64,7 +70,7 @@ export async function collectCandidates(options = {}) {
     timeoutMs = 12000,
   } = options
 
-  const results = await Promise.all(sources.map((s) => fetchFeed(s, fetchImpl, timeoutMs)))
+  const results = await Promise.all(sources.map((s) => fetchSource(s, fetchImpl, timeoutMs)))
 
   const errors = []
   const seenIds = new Set()

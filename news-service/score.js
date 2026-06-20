@@ -44,8 +44,8 @@ export function scoreCandidate(candidate) {
   // Лёгкий приоритет источника.
   score *= candidate.weight ?? 1
 
-  // Ключевая ценность редполитики — связка «цифры + исследование».
-  const meetsPolicy = (research > 0 || numbers) && topic > 0
+  // Достаточно релевантности маркетингу; цифры/исследования — бонус, не условие.
+  const meetsPolicy = topic > 0
 
   return { ...candidate, score: Math.round(score * 100) / 100, reasons, meetsPolicy }
 }

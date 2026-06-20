@@ -1,17 +1,24 @@
 // Конфигурация сервиса авто-публикации новостей.
 // Всё, что меняется при адаптации под другие каналы/темы, держим здесь.
 
-// Живые RSS-ленты (проверены 2026-06-18). weight — небольшой приоритет
-// источника при равных оценках. Лента vc.ru отдаёт «популярное», что само по
-// себе сигнал виральности.
+// Источники: RSS-ленты и публичные Telegram-каналы (type: 'telegram').
+// weight — небольшой приоритет источника при равных оценках.
+// Telegram-каналы взяты из тех, что курирует владелец (его вкус), плюс
+// белорусский «Гусаров маркетинг» под локальную повестку РБ.
 export const SOURCES = [
-  { id: 'sostav', name: 'Sostav', url: 'https://www.sostav.ru/rss/', weight: 1.0 },
-  { id: 'cossa', name: 'Cossa', url: 'https://www.cossa.ru/rss/', weight: 1.0 },
-  { id: 'adpass', name: 'ADPASS', url: 'https://adpass.ru/feed/', weight: 1.0 },
-  { id: 'ppcworld', name: 'ppc.world', url: 'https://ppc.world/feed/', weight: 1.1 },
-  { id: 'texterra', name: 'Texterra', url: 'https://texterra.ru/blog/rss/', weight: 0.9 },
-  { id: 'rb', name: 'Rusbase', url: 'https://rb.ru/feeds/all/', weight: 0.8 },
-  { id: 'vc', name: 'vc.ru', url: 'https://vc.ru/rss', weight: 1.1 },
+  // Профильные медиа о маркетинге/рекламе (RSS).
+  { id: 'sostav', name: 'Sostav', type: 'rss', url: 'https://www.sostav.ru/rss/', weight: 1.0 },
+  { id: 'cossa', name: 'Cossa', type: 'rss', url: 'https://www.cossa.ru/rss/', weight: 1.0 },
+  { id: 'adpass', name: 'ADPASS', type: 'rss', url: 'https://adpass.ru/feed/', weight: 1.0 },
+  { id: 'ppcworld', name: 'ppc.world', type: 'rss', url: 'https://ppc.world/feed/', weight: 1.0 },
+  { id: 'texterra', name: 'Texterra', type: 'rss', url: 'https://texterra.ru/blog/rss/', weight: 0.9 },
+  { id: 'vc', name: 'vc.ru', type: 'rss', url: 'https://vc.ru/rss', weight: 1.0 },
+  // Telegram-каналы (вкус владельца + Беларусь).
+  { id: 'gusarovby', name: 'Гусаров маркетинг', type: 'telegram', username: 'gusarovby', weight: 1.3 },
+  { id: 'marketingploy', name: 'Маркетинговый ход', type: 'telegram', username: 'MarketingPloy', weight: 1.2 },
+  { id: 'profitmaker', name: 'Инструменты маркетолога', type: 'telegram', username: 'profit_maker', weight: 1.1 },
+  { id: 'neurocode', name: 'Нейро', type: 'telegram', username: 'neuro_code', weight: 1.0 },
+  { id: 'digitalopinion', name: 'СугубоЛичноеМнение', type: 'telegram', username: 'digitalopinion', weight: 1.1 },
 ]
 
 // Окна отбора.
