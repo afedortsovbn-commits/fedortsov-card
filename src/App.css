@@ -293,6 +293,10 @@ h1 {
   font-size: clamp(26px, 5vw, 36px);
 }
 
+.news-carousel {
+  position: relative;
+}
+
 .news-rail {
   display: grid;
   grid-auto-flow: column;
@@ -303,6 +307,51 @@ h1 {
   scroll-snap-type: x proximity;
   /* Не даём браузеру сдвигать ленту вправо при вставке свежей новости слева. */
   overflow-anchor: none;
+  /* Прячем системный скролл-бар — листаем стрелками/свайпом. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.news-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.news-arrow {
+  position: absolute;
+  top: calc(50% - 6px);
+  transform: translateY(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(238, 187, 90, 0.45);
+  background: rgba(16, 18, 22, 0.92);
+  color: var(--gold);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  transition: background 0.15s, transform 0.15s;
+}
+
+.news-arrow:hover {
+  background: rgba(28, 31, 38, 0.96);
+}
+
+.news-arrow-left {
+  left: -10px;
+}
+
+.news-arrow-right {
+  right: -10px;
+}
+
+/* На мобильном листаем свайпом — стрелки не нужны. */
+@media (max-width: 739px) {
+  .news-arrow {
+    display: none;
+  }
 }
 
 .news-card {

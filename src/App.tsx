@@ -5,6 +5,8 @@ import {
   Award,
   BriefcaseBusiness,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Edit3,
   ExternalLink,
@@ -818,11 +820,36 @@ function JobsSection({ jobs, onOpen }: { jobs: JobOpening[]; onOpen: (job: JobOp
 
 function NewsSection({ news, onOpen }: { news: NewsItem[]; onOpen: (item: NewsItem) => void }) {
   const railRef = useRef<HTMLDivElement>(null)
+  const [canLeft, setCanLeft] = useState(false)
+  const [canRight, setCanRight] = useState(false)
+
+  const updateArrows = () => {
+    const rail = railRef.current
+    if (!rail) return
+    setCanLeft(rail.scrollLeft > 1)
+    setCanRight(rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 1)
+  }
+
+  const scrollByDir = (dir: number) => {
+    const rail = railRef.current
+    if (!rail) return
+    rail.scrollBy({ left: dir * rail.clientWidth * 0.85, behavior: 'smooth' })
+  }
+
   // Новости приходят в два этапа (fallback → загруженные), и свежая вставляется
   // слева. Браузерный scroll-anchoring сдвигает ленту вправо и прячет её —
   // принудительно возвращаем ленту в крайнее левое положение при обновлении.
   useEffect(() => {
-    railRef.current?.scrollTo({ left: 0 })
+    const rail = railRef.current
+    if (!rail) return
+    rail.scrollTo({ left: 0 })
+    updateArrows()
+    rail.addEventListener('scroll', updateArrows, { passive: true })
+    window.addEventListener('resize', updateArrows)
+    return () => {
+      rail.removeEventListener('scroll', updateArrows)
+      window.removeEventListener('resize', updateArrows)
+    }
   }, [news])
 
   return (
@@ -831,20 +858,42 @@ function NewsSection({ news, onOpen }: { news: NewsItem[]; onOpen: (item: NewsIt
         <Newspaper />
         <h2>Маркетинговые новости</h2>
       </div>
-      <div className="news-rail" ref={railRef} aria-label="Список маркетинговых новостей">
-        {news.map((item) => (
-          <article className="news-card" key={item.id}>
-            <img src={publicAsset(item.image)} alt="" />
-            <div>
-              <time>{formatDate(item.date)}</time>
-              <h3>{item.title}</h3>
-              <button type="button" onClick={() => onOpen(item)}>
-                Читать далее
-                <ExternalLink size={16} />
-              </button>
-            </div>
-          </article>
-        ))}
+      <div className="news-carousel">
+        {canLeft && (
+          <button
+            type="button"
+            className="news-arrow news-arrow-left"
+            onClick={() => scrollByDir(-1)}
+            aria-label="Предыдущие новости"
+          >
+            <ChevronLeft />
+          </button>
+        )}
+        <div className="news-rail" ref={railRef} aria-label="Список маркетинговых новостей">
+          {news.map((item) => (
+            <article className="news-card" key={item.id}>
+              <img src={publicAsset(item.image)} alt="" />
+              <div>
+                <time>{formatDate(item.date)}</time>
+                <h3>{item.title}</h3>
+                <button type="button" onClick={() => onOpen(item)}>
+                  Читать далее
+                  <ExternalLink size={16} />
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+        {canRight && (
+          <button
+            type="button"
+            className="news-arrow news-arrow-right"
+            onClick={() => scrollByDir(1)}
+            aria-label="Следующие новости"
+          >
+            <ChevronRight />
+          </button>
+        )}
       </div>
     </section>
   )
