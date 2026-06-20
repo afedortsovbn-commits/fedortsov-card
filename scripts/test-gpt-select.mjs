@@ -1,8 +1,8 @@
 // Полный прогон отбора через YandexGPT на живых RSS.
 // Запуск: node scripts/test-gpt-select.mjs
 import 'dotenv/config'
-import { buildQueue } from '../worker/news/pipeline.js'
-import { gptSelect } from '../worker/news/select-gpt.js'
+import { buildQueue } from '../news-service/pipeline.js'
+import { gptSelect } from '../news-service/select-gpt.js'
 
 const env = process.env
 const ranker = (candidates) => gptSelect(env, candidates, { limit: 9 })

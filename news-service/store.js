@@ -86,3 +86,13 @@ export async function getImage(env, id) {
   if (!value) return null
   return { bytes: value, contentType: metadata?.contentType || 'image/jpeg' }
 }
+
+export async function delImage(env, id) {
+  await env.JOBS.delete(`${IMG_PREFIX}${id}`)
+}
+
+// id картинки из её URL (хвост /api/news/image/<id>); '' если это не наша картинка.
+export function imageIdFromUrl(url) {
+  const m = String(url || '').match(/\/api\/news\/image\/([^/?#]+)/)
+  return m ? m[1] : ''
+}

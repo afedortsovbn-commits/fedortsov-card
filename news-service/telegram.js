@@ -1,5 +1,5 @@
 // Отправка карточек новостей в Telegram с инлайн-кнопками и помощники для
-// обработки нажатий (webhook). Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID.
+// обработки нажатий (webhook). Env: NEWS_BOT_TOKEN (бот NewsFedortsov_Bot), TELEGRAM_CHAT_ID.
 
 const api = (token, method) => `https://api.telegram.org/bot${token}/${method}`
 
@@ -12,7 +12,7 @@ export function escapeHtml(text) {
 
 // Простое текстовое уведомление в чат владельца (без кнопок).
 export async function notify(env, text) {
-  const token = env.TELEGRAM_BOT_TOKEN
+  const token = env.NEWS_BOT_TOKEN
   const chatId = env.TELEGRAM_CHAT_ID
   if (!token || !chatId) return
   await fetch(api(token, 'sendMessage'), {
@@ -50,7 +50,7 @@ export function reviewKeyboard(id) {
     inline_keyboard: [
       [
         { text: '✅ Согласовать', callback_data: `approve:${id}` },
-        { text: '❌ Отмена', callback_data: `reject:${id}` },
+        { text: '❌ Не размещать', callback_data: `reject:${id}` },
       ],
       [{ text: '🔁 Ещё 2', callback_data: `more:${id}` }],
     ],
@@ -58,7 +58,7 @@ export function reviewKeyboard(id) {
 }
 
 export async function sendNewsCard(env, candidate, meta = {}) {
-  const token = env.TELEGRAM_BOT_TOKEN
+  const token = env.NEWS_BOT_TOKEN
   const chatId = env.TELEGRAM_CHAT_ID
   if (!token || !chatId) throw new Error('telegram_not_configured')
 
@@ -80,7 +80,7 @@ export async function sendNewsCard(env, candidate, meta = {}) {
 
 // Короткое всплывающее уведомление в ответ на нажатие кнопки.
 export async function answerCallback(env, callbackQueryId, text = '') {
-  const token = env.TELEGRAM_BOT_TOKEN
+  const token = env.NEWS_BOT_TOKEN
   await fetch(api(token, 'answerCallbackQuery'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -90,7 +90,7 @@ export async function answerCallback(env, callbackQueryId, text = '') {
 
 // Заменить текст/клавиатуру у уже отправленной карточки (после решения).
 export async function editCardText(env, messageId, text, replyMarkup) {
-  const token = env.TELEGRAM_BOT_TOKEN
+  const token = env.NEWS_BOT_TOKEN
   const chatId = env.TELEGRAM_CHAT_ID
   await fetch(api(token, 'editMessageText'), {
     method: 'POST',

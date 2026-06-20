@@ -1,6 +1,6 @@
 // Проверка пайплайна с мок-KV: дедупликация (seen + published) и сборка очереди.
 // Запуск: node scripts/test-pipeline.mjs
-import { buildQueue } from '../worker/news/pipeline.js'
+import { buildQueue } from '../news-service/pipeline.js'
 
 // Мини-эмуляция Cloudflare KV в памяти.
 function mockEnv(store = {}) {

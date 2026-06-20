@@ -1,5 +1,5 @@
-import { readNews, writeNews, getImage } from './news/store.js'
-import { runDaily, handleTelegramUpdate } from './news/service.js'
+import { readNews, writeNews, getImage } from '../news-service/store.js'
+import { runDaily, handleTelegramUpdate } from '../news-service/service.js'
 
 const allowedOrigins = new Set([
   'https://afedortsovbn-commits.github.io',

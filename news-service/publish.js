@@ -2,8 +2,13 @@
 // но контракт publish(env, channel, draft) позволяет добавлять каналы (Telegram-
 // канал, VK и т.п.) без изменения остального сервиса.
 
-import { readNews, writeNews, putImage } from './store.js'
+import {
+  readNews, writeNews, putImage, delImage, imageIdFromUrl,
+} from './store.js'
 import { compressImage } from './compress.js'
+
+// Сколько новостей храним на визитке; более старые удаляем (вместе с картинками).
+const MAX_NEWS = 20
 
 // База API воркера — нужна, чтобы картинка грузилась на визитке (другой домен).
 const WORKER_BASE = 'https://fedortsov-card-api.afedortsovbn.workers.dev'
@@ -48,6 +53,17 @@ async function publishToVisitka(env, draft, options = {}) {
   }
   const news = await readNews(env)
   news.unshift(item)
+
+  // Оставляем только последние MAX_NEWS; у удаляемых подчищаем картинки из KV.
+  if (news.length > MAX_NEWS) {
+    const removed = news.slice(MAX_NEWS)
+    news.length = MAX_NEWS
+    for (const old of removed) {
+      const imgId = imageIdFromUrl(old.image)
+      if (imgId) await delImage(env, imgId)
+    }
+  }
+
   await writeNews(env, news)
   return item
 }

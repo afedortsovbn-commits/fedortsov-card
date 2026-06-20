@@ -1,11 +1,11 @@
 // Тест связки: сбор → берём свежую новость → тянем статью → рерайт через GPT.
 // Запуск: node scripts/test-rewrite.mjs
 import 'dotenv/config'
-import { SOURCES } from '../worker/news/config.js'
-import { collectCandidates } from '../worker/news/collect.js'
-import { selectTop } from '../worker/news/score.js'
-import { fetchArticleText } from '../worker/news/article.js'
-import { rewriteNews } from '../worker/news/rewrite.js'
+import { SOURCES } from '../news-service/config.js'
+import { collectCandidates } from '../news-service/collect.js'
+import { selectTop } from '../news-service/score.js'
+import { fetchArticleText } from '../news-service/article.js'
+import { rewriteNews } from '../news-service/rewrite.js'
 
 const { candidates } = await collectCandidates({ sources: SOURCES, days: 7 })
 const top = selectTop(candidates, { limit: 5, strict: true })

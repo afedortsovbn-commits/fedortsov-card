@@ -3,7 +3,7 @@
 import 'dotenv/config'
 import { writeFileSync } from 'node:fs'
 import { PhotonImage, resize, SamplingFilter } from '@cf-wasm/photon/node'
-import { generateImage } from '../worker/news/image.js'
+import { generateImage } from '../news-service/image.js'
 
 console.log('Генерирую картинку ART…')
 const base64 = await generateImage(process.env, { title: 'Российский рынок ПО для ИИ вырастет в 4 раза' })

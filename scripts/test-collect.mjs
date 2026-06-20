@@ -1,8 +1,8 @@
 // Локальная проверка каркаса сбора новостей: тянет живые RSS, парсит,
 // оценивает эвристикой и печатает топ. Запуск: node scripts/test-collect.mjs
-import { SOURCES, WINDOW_DAYS } from '../worker/news/config.js'
-import { collectCandidates } from '../worker/news/collect.js'
-import { selectTop } from '../worker/news/score.js'
+import { SOURCES, WINDOW_DAYS } from '../news-service/config.js'
+import { collectCandidates } from '../news-service/collect.js'
+import { selectTop } from '../news-service/score.js'
 
 const days = Number(process.argv[2]) || WINDOW_DAYS.week
 

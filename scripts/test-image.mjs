@@ -2,7 +2,7 @@
 // Запуск: node scripts/test-image.mjs
 import 'dotenv/config'
 import { writeFileSync } from 'node:fs'
-import { generateImage, buildImagePrompt } from '../worker/news/image.js'
+import { generateImage, buildImagePrompt } from '../news-service/image.js'
 
 const item = { title: 'Российский рынок ПО для ИИ вырастет в 4 раза к 2030 году' }
 console.log('Промпт:', buildImagePrompt(item), '\n')

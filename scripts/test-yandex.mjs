@@ -1,7 +1,7 @@
 // Проверка ключа Яндекса: YandexGPT (текст) и YandexART (запуск генерации).
 // Запуск: node scripts/test-yandex.mjs
 import 'dotenv/config'
-import { yandexComplete, yandexArtStart } from '../worker/news/yandex.js'
+import { yandexComplete, yandexArtStart } from '../news-service/yandex.js'
 
 const env = process.env
 console.log('Folder:', env.YANDEX_FOLDER_ID || '(нет)')

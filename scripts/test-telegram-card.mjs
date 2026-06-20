@@ -2,7 +2,7 @@
 // готовый пример из реального прогона отбора).
 // Запуск: node scripts/test-telegram-card.mjs
 import 'dotenv/config'
-import { sendNewsCard } from '../worker/news/telegram.js'
+import { sendNewsCard } from '../news-service/telegram.js'
 
 const sample = {
   id: '1a2b3c4d',
