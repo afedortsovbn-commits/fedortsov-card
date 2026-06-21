@@ -49,10 +49,14 @@ export function reviewKeyboard(id) {
   return {
     inline_keyboard: [
       [
-        { text: '✅ Согласовать', callback_data: `approve:${id}` },
-        { text: '❌ Не размещать', callback_data: `reject:${id}` },
+        { text: '🔥', callback_data: `rate:fire:${id}` },
+        { text: '👍', callback_data: `rate:up:${id}` },
+        { text: '👎', callback_data: `rate:down:${id}` },
       ],
-      [{ text: '🔁 Ещё 2', callback_data: `more:${id}` }],
+      [
+        { text: '✅ Разместить', callback_data: `approve:${id}` },
+        { text: '🔁 Ещё 3', callback_data: `more:${id}` },
+      ],
     ],
   }
 }

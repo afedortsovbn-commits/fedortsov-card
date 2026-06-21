@@ -2,7 +2,7 @@
 // (Telegram webhook). Связывает отбор → согласование → рерайт → картинку →
 // публикацию.
 
-import { EDITORIAL } from './config.js'
+import { EDITORIAL, RATING_SCORES } from './config.js'
 import { buildQueue } from './pipeline.js'
 import { gptSelect } from './select-gpt.js'
 import { markSeen } from './dedup.js'
@@ -10,12 +10,13 @@ import { sendNewsCard, answerCallback, editCardText, notify, escapeHtml } from '
 import {
   loadSession, saveSession, newSession, takeFromQueue,
 } from './session.js'
+import { recordRating } from './ratings.js'
 import { fetchArticleText } from './article.js'
 import { rewriteNews } from './rewrite.js'
 import { generateImage } from './image.js'
 import { publish, attachImage } from './publish.js'
 
-const MORE_BATCH = 2
+const RATE_LABELS = { fire: '🔥', up: '👍', down: '👎' }
 
 // Дата по Москве (UTC+3) в формате YYYY-MM-DD.
 function todayMsk() {
@@ -35,8 +36,9 @@ export async function runDaily(env) {
   const session = newSession(todayMsk(), queue)
   const first = takeFromQueue(session, EDITORIAL.batchSize)
   await saveSession(env, session)
+  await notify(env, `📰 Новости на сегодня (${first.length}). Оцените каждую 🔥/👍/👎 и выберите, какую разместить.`)
   for (const candidate of first) {
-    await sendNewsCard(env, candidate, { scope: 'day' })
+    await sendNewsCard(env, candidate, {})
   }
   await markSeen(env, first.map((c) => c.id))
   return { offered: first.length, stats }
@@ -55,25 +57,35 @@ export async function handleTelegramUpdate(env, update, ctx) {
     return
   }
 
-  const [action, id] = String(cb.data || '').split(':')
+  const parts = String(cb.data || '').split(':')
+  const action = parts[0]
   const messageId = cb.message?.message_id
   const session = await loadSession(env)
+
+  // Оценка 🔥/👍/👎 — работает всегда (в т.ч. после публикации другой новости),
+  // копится в память для обучения отбора. Не закрывает сессию.
+  if (action === 'rate') {
+    const kind = parts[1]
+    const candidate = session?.offered?.[parts[2]]
+    const score = RATING_SCORES[kind]
+    if (candidate && score != null) {
+      await recordRating(env, candidate, score)
+      await answerCallback(env, cb.id, `Оценка ${RATE_LABELS[kind] || ''} учтена`)
+    } else {
+      await answerCallback(env, cb.id, 'Оценка не записана (сессия устарела)')
+    }
+    return
+  }
 
   if (!session || !session.active) {
     await answerCallback(env, cb.id, 'Сессия неактивна — продолжим завтра')
     return
   }
 
-  if (action === 'reject') {
-    session.active = false
-    await saveSession(env, session)
-    await editCardText(env, messageId, '❌ Отклонено. Поиск продолжится завтра.')
-    await answerCallback(env, cb.id, 'Отменено')
-    return
-  }
+  const id = parts[1]
 
   if (action === 'more') {
-    const next = takeFromQueue(session, MORE_BATCH)
+    const next = takeFromQueue(session, EDITORIAL.batchSize)
     await saveSession(env, session)
     await answerCallback(env, cb.id, next.length ? 'Показываю ещё' : 'Свежих новостей больше нет')
     for (const candidate of next) {
@@ -89,6 +101,8 @@ export async function handleTelegramUpdate(env, update, ctx) {
       await answerCallback(env, cb.id, 'Новость не найдена в сессии')
       return
     }
+    // Публикация — сильнейший сигнал «нравится».
+    await recordRating(env, candidate, RATING_SCORES.publish)
     await answerCallback(env, cb.id, 'Готовлю публикацию…')
     await editCardText(env, messageId, '⏳ Готовлю оригинальный текст и фоновую картинку…')
     const work = processApproval(env, candidate, messageId)

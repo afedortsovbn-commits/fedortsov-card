@@ -6,6 +6,7 @@
 
 import { yandexComplete, parseJsonFromText } from './yandex.js'
 import { selectTop } from './score.js'
+import { buildCalibration } from './ratings.js'
 
 const SYSTEM = [
   'Ты — главный редактор авторского канала новостей о маркетинге. Автор — эксперт-маркетолог из Беларуси.',
@@ -50,11 +51,15 @@ export async function gptSelect(env, candidates, options = {}) {
   const pre = selectTop(candidates, { limit: shortlist, strict: false })
   if (!pre.length) return []
 
+  // 1b. Калибровка по прошлым оценкам автора (обучение по вкусу).
+  const calibration = env ? await buildCalibration(env).catch(() => '') : ''
+  const system = calibration ? `${SYSTEM}\n\n${calibration}` : SYSTEM
+
   // 2. Запрос к YandexGPT.
   let parsed
   try {
     const text = await yandexComplete(env, {
-      system: SYSTEM,
+      system,
       user: buildUser(pre),
       model,
       temperature: 0.2,
