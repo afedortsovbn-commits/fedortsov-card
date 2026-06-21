@@ -25,21 +25,26 @@ function base64ToArrayBuffer(b64) {
 }
 
 // Публикация на визитку. draft: { title, text, sourceUrl, sourceName, imageBase64 }
+// Сжимает base64-картинку, кладёт в KV под ключ id, возвращает публичный URL.
+async function storeImage(env, id, imageBase64, options = {}) {
+  const raw = base64ToArrayBuffer(imageBase64)
+  let bytes
+  try {
+    bytes = compressImage(raw)
+  } catch (error) {
+    console.warn('compressImage:', error.message)
+    bytes = raw
+  }
+  await putImage(env, id, bytes, 'image/jpeg')
+  const base = options.apiBase || env.PUBLIC_API_BASE || WORKER_BASE
+  return `${base}/api/news/image/${id}`
+}
+
 async function publishToVisitka(env, draft, options = {}) {
   const id = `news-${Date.now()}-${uuid()}`
   let image = '/images/news-ai.svg'
   if (draft.imageBase64) {
-    const raw = base64ToArrayBuffer(draft.imageBase64)
-    let bytes
-    try {
-      bytes = compressImage(raw)
-    } catch (error) {
-      console.warn('compressImage:', error.message)
-      bytes = raw
-    }
-    await putImage(env, id, bytes, 'image/jpeg')
-    const base = options.apiBase || env.PUBLIC_API_BASE || WORKER_BASE
-    image = `${base}/api/news/image/${id}`
+    image = await storeImage(env, id, draft.imageBase64, options)
   }
   const item = {
     id,
@@ -66,6 +71,18 @@ async function publishToVisitka(env, draft, options = {}) {
 
   await writeNews(env, news)
   return item
+}
+
+// Догрузка картинки к уже опубликованной новости (best-effort, отдельным шагом,
+// чтобы публикация текста не зависела от долгой генерации картинки).
+export async function attachImage(env, id, imageBase64, options = {}) {
+  const url = await storeImage(env, id, imageBase64, options)
+  const news = await readNews(env)
+  const item = news.find((n) => n.id === id)
+  if (!item) return false
+  item.image = url
+  await writeNews(env, news)
+  return true
 }
 
 const PUBLISHERS = {

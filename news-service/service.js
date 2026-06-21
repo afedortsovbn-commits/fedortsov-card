@@ -13,7 +13,7 @@ import {
 import { fetchArticleText } from './article.js'
 import { rewriteNews } from './rewrite.js'
 import { generateImage } from './image.js'
-import { publish } from './publish.js'
+import { publish, attachImage } from './publish.js'
 
 const MORE_BATCH = 2
 
@@ -97,19 +97,20 @@ export async function handleTelegramUpdate(env, update, ctx) {
   }
 }
 
-// Тяжёлая часть: статья → рерайт → картинка → публикация.
+// Согласование. Сначала публикуем ТЕКСТ (быстро и надёжно), показываем успех и
+// только потом догружаем картинку отдельным шагом — долгая генерация ART больше
+// не может «уронить» публикацию (раньше фон воркера обрывался на картинке).
 async function processApproval(env, candidate, messageId) {
+  let item
   try {
     const article = await fetchArticleText(candidate.url)
     const { title, text } = await rewriteNews(env, candidate, article)
-    const imageBase64 = await generateImage(env, { title })
 
-    await publish(env, 'visitka', {
+    item = await publish(env, 'visitka', {
       title,
       text,
       sourceUrl: candidate.url,
       sourceName: candidate.sourceName,
-      imageBase64,
     })
 
     // По умолчанию — одна новость в день: закрываем сессию.
@@ -119,13 +120,22 @@ async function processApproval(env, candidate, messageId) {
       await saveSession(env, session)
     }
 
-    const withImage = imageBase64 ? '' : '\n<i>(картинка не сгенерировалась — стоит запасная)</i>'
-    await editCardText(env, messageId, `✅ Опубликовано на визитке:\n<b>${escapeHtml(title)}</b>${withImage}`)
+    await editCardText(env, messageId, `✅ Опубликовано на визитке:\n<b>${escapeHtml(title)}</b>`)
   } catch (error) {
     await editCardText(
       env,
       messageId,
       `⚠️ Не удалось опубликовать: ${escapeHtml(String(error.message).slice(0, 150))}\nМожно нажать «Согласовать» ещё раз.`,
     )
+    return
+  }
+
+  // Картинка — best-effort: если не успеет/не выйдет, новость уже опубликована
+  // с запасной картинкой, успех пользователю уже показан.
+  try {
+    const imageBase64 = await generateImage(env, { title: item.title }, { tries: 16, delayMs: 2500 })
+    if (imageBase64) await attachImage(env, item.id, imageBase64)
+  } catch (error) {
+    console.warn('attachImage step failed:', error.message)
   }
 }
