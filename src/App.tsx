@@ -576,9 +576,10 @@ function App() {
       {activeNews && (
         <Modal title={activeNews.title} onClose={() => setActiveNews(null)}>
           <article className="news-full">
-            <img src={publicAsset(activeNews.image)} alt="" />
             <time>{formatDate(activeNews.date)}</time>
-            <p>{activeNews.text}</p>
+            {activeNews.text.split('\n\n').map((para, index) => (
+              <p key={index}>{para}</p>
+            ))}
             {activeNews.sourceUrl && (
               <a className="news-source" href={activeNews.sourceUrl} target="_blank" rel="noreferrer">
                 Источник: {activeNews.sourceName || 'первоисточник'}

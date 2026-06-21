@@ -6,7 +6,7 @@ import { PhotonImage, resize, SamplingFilter } from '@cf-wasm/photon'
 
 // bytes: ArrayBuffer | Uint8Array. Возвращает Uint8Array (JPEG).
 export function compressImage(bytes, options = {}) {
-  const { maxWidth = 800, quality = 72 } = options
+  const { maxWidth = 1280, quality = 85 } = options
   let img
   let resized
   try {

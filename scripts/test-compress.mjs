@@ -13,10 +13,10 @@ console.log(`Оригинал: ${(original.length / 1024).toFixed(0)} КБ`)
 const img = PhotonImage.new_from_byteslice(new Uint8Array(original))
 const w = img.get_width()
 const h = img.get_height()
-const targetW = 800
+const targetW = Math.min(1280, w)
 const targetH = Math.round((h * targetW) / w)
 const resized = resize(img, targetW, targetH, SamplingFilter.Lanczos3)
-const out = Buffer.from(resized.get_bytes_jpeg(72))
+const out = Buffer.from(resized.get_bytes_jpeg(85))
 img.free()
 resized.free()
 
