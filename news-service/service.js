@@ -127,7 +127,9 @@ export async function handleTelegramUpdate(env, update, ctx) {
 async function processApproval(env, candidate, messageId) {
   let item
   try {
-    const article = await fetchArticleText(candidate.url)
+    // Для Telegram-постов текст уже в summary, страницу t.me качать не нужно
+    // (она отдаёт виджет без контента). Для статей — выкачиваем текст.
+    const article = candidate.url.includes('t.me/') ? '' : await fetchArticleText(candidate.url)
     const { title, text } = await rewriteNews(env, candidate, article)
 
     item = await publish(env, 'visitka', {

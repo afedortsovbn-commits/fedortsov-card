@@ -8,13 +8,15 @@ import { fetchArticleText } from '../news-service/article.js'
 import { rewriteNews } from '../news-service/rewrite.js'
 
 const { candidates } = await collectCandidates({ sources: SOURCES, days: 7 })
-const top = selectTop(candidates, { limit: 5, strict: true })
-const pick = top[0]
+const top = selectTop(candidates, { limit: 20, strict: true })
+// Берём новость С цифрами, чтобы проверить цифру в заголовке.
+const hasNumber = (c) => /\d+\s?%|\d{2,}/.test(`${c.title} ${c.summary || ''}`)
+const pick = top.find(hasNumber) || top[0]
 console.log('Выбрана новость:', pick.title)
 console.log('URL:', pick.url, '\n')
 
 console.log('Тяну текст статьи…')
-const article = await fetchArticleText(pick.url)
+const article = pick.url.includes('t.me/') ? '' : await fetchArticleText(pick.url)
 console.log(`Извлечено ${article.length} симв. Превью:`)
 console.log(article.slice(0, 300), '\n')
 
