@@ -324,7 +324,8 @@ export default {
       if (!env.TELEGRAM_WEBHOOK_SECRET || url.searchParams.get('key') !== env.TELEGRAM_WEBHOOK_SECRET) {
         return new Response('forbidden', { status: 403 })
       }
-      ctx.waitUntil(runDaily(env).catch((error) => console.error('runDaily failed:', error)))
+      const force = url.searchParams.get('force') === '1'
+      ctx.waitUntil(runDaily(env, { force }).catch((error) => console.error('runDaily failed:', error)))
       return new Response('started')
     }
 

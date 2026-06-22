@@ -24,7 +24,17 @@ function todayMsk() {
 }
 
 // === Ежедневный прогон (вызывается из scheduled) ===
-export async function runDaily(env) {
+// force=true — запустить принудительно (ручной запуск). По умолчанию защита от
+// дубля: если за сегодня карточки уже отправлены, ничего не делаем (на случай
+// нескольких cron-попыток или повторного срабатывания).
+export async function runDaily(env, { force = false } = {}) {
+  if (!force) {
+    const existing = await loadSession(env)
+    if (existing?.date === todayMsk() && Object.keys(existing.offered || {}).length) {
+      return { skipped: true }
+    }
+  }
+
   const ranker = (candidates) => gptSelect(env, candidates, { limit: EDITORIAL.queueSize })
   const { queue, stats } = await buildQueue(env, { ranker })
 
